@@ -8,6 +8,12 @@
 
 
 # Build results
+project/*
+!project/WhereTheSea/
+project/[Debug]_32/
+project/[Debug]_64/
+project/[Release]_32/
+project/[Release]_64/
 [Dd]ebug/
 [Dd]ebugPublic/
 [Rr]elease/
