@@ -1,11 +1,14 @@
 #include "mainwindow.h"
 #include <QApplication>
 
+#include <player.h>
+
 int main(int argc, char *argv[])
 {
-    QApplication a(argc, argv);
-    MainWindow w;
-    w.show();
+    QApplication app(argc, argv);
+    Player obj;
 
-    return a.exec();
+    obj.show();
+
+    return app.exec();
 }
