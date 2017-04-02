@@ -1,0 +1,7 @@
+<RCC>
+    <qresource prefix="/">
+        <file>img/off.png</file>
+        <file>img/on.png</file>
+        <file>img/pause.png</file>
+    </qresource>
+</RCC>

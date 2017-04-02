@@ -8,8 +8,11 @@ class DataProcessor : public QObject
 {
     Q_OBJECT
 private:
+    QDir imageDir_;
+    QString logFile_;
+    QString outputFile;
+
     int state_; //0-stopped, 1-paused, 2-working
-    QDir dirProcess_; //dir with files of images
     int frequency_; //frequency the dir are being looked over
 public:
     explicit DataProcessor(QObject *parent = 0);

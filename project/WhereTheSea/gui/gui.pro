@@ -31,3 +31,6 @@ SOURCES += main.cpp\
 HEADERS  += dataprocessor.h \
         player.h
 
+RESOURCES += \
+    images.qrc
+

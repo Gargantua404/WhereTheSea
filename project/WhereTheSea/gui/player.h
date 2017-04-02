@@ -32,18 +32,36 @@ private:
 
     DataProcessor * processor_;
 public:
-    Player ();
+    Player (QWidget * parent = nullptr);
 
 public slots:
-  void OpenSettingsWindow(); // open settings window on pressing the button in menus
+
 };
 
 class SettingsWindow: public QDialog{
-Q_OBJECT
-public:
-    SettingsWindow ();
-public slots:
+    Q_OBJECT
+private:
+    QString imageDir_;
+    QString logFile_;
+    QString outputFile_;
+    int frequency_;
 
+    QLineEdit * imageDirLine_;
+    QLineEdit * logFileLine_;
+    QLineEdit * outputFileLine_;
+    QSpinBox * freqBox_;
+protected:
+    int isFileSpecification(const QString &);
+public:
+    SettingsWindow (QString imDir,QString logFile,QString outputFile, int frequency, QWidget * parent = nullptr);
+
+    void checkInput();
+signals:
+    void sendSettingsToProcessor(QString imDir, QString logFile, QString outputFile, int frequency);
+public slots:
+    void openSettingsWindow(); // open settings window on pressing the button in menus
+    void applySetings();
+    void cancelSettings();
 };
 
 class StatBar: public QLabel{
@@ -51,7 +69,7 @@ class StatBar: public QLabel{
 private:
     const QVector<QString> stateArr_;
 public:
-    StatBar();
+    StatBar(QWidget * parent = nullptr);
 public slots:
     void changeState(int);
 };
@@ -66,7 +84,7 @@ private:
 
     int state; //0 - pause, 1- on
 public:
-    PausePlayButton();
+    PausePlayButton(QWidget * parent = nullptr);
 
 signals:
     void pausePlayButtonClicked(int);
@@ -84,7 +102,7 @@ private:
     QPixmap * ButtonPicture_;
     QIcon * ButtonIcon_;
 public:
-    StopButton();
+    StopButton(QWidget * parent = nullptr);
 
 signals:
     void stopButtonClicked(int);
@@ -96,12 +114,22 @@ public slots:
 class SettingsMenu: public QMenu{
     Q_OBJECT
 public:
-    SettingsMenu(const QString & title, QWidget * parent = nullptr): QMenu(title, parent){
-
-    }
-;
+    SettingsMenu(QWidget * parent =nullptr):QMenu(parent){}
+    SettingsMenu(const QString & title, QWidget * parent = nullptr): QMenu(title, parent){}
 public slots:
     void changeState(int);
 };
+
+/*class DirValidator: public QValidator{
+public:
+    DirValidator(QObject * parent = nullptr): QValidator(parent){
+
+    }
+
+};
+
+class FileValifdator: public QValidator{
+
+};*/
 
 #endif // PLAYER_H
