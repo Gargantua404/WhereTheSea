@@ -25,12 +25,9 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 
 SOURCES += main.cpp\
-        mainwindow.cpp \
-    dataprocessor.cpp \
-    player.cpp
+        dataprocessor.cpp \
+        player.cpp
 
-HEADERS  += mainwindow.h \
-    dataprocessor.h \
-    player.h
+HEADERS  += dataprocessor.h \
+        player.h
 
-FORMS    += mainwindow.ui
