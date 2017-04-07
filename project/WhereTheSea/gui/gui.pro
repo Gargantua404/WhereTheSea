@@ -34,3 +34,4 @@ HEADERS  += dataprocessor.h \
 RESOURCES += \
     images.qrc
 
+QMAKE_CXXFLAGS += -std=c++0x
