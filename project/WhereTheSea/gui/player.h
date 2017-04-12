@@ -12,6 +12,7 @@ class StatBar;
 class PausePlayButton;
 class StopButton;
 class SettingsMenu;
+class DataProcessor;
 
 class Player: public QMainWindow  {
     Q_OBJECT
@@ -50,16 +51,27 @@ private:
     QLineEdit * logFileLine_;
     QLineEdit * outputFileLine_;
     QSpinBox * freqBox_;
-protected:
-    int isFileSpecification(const QString &);
+    QPushButton * but1;
+    QPushButton * but2;
+    QPushButton * but3;
+    QSettings * storedSet_;
+
+    DataProcessor * processor_; //DataProcessor is for tracking of state to hide some oarameters in settingswindow
+    friend class ::Player;
 public:
-    SettingsWindow (QString imDir,QString logFile,QString outputFile, int frequency, QWidget * parent = nullptr);
+    //SettingsWindow (QString imDir,QString logFile,QString outputFile, int frequency, QWidget * parent = nullptr);
+    SettingsWindow(DataProcessor * proc, QWidget * parent =nullptr);
 
     void checkInput();
 signals:
     void sendSettingsToProcessor(QString imDir, QString logFile, QString outputFile, int frequency);
 public slots:
     void openSettingsWindow(); // open settings window on pressing the button in menus
+
+    void setLabelImageDirFromBrowse();
+    void setLabelLogFileFromBrowse();
+    void setLabelOutputFileFromBrowse();
+
     void applySetings();
     void cancelSettings();
 };

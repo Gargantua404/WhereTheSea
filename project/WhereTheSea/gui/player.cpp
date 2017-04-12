@@ -4,6 +4,7 @@ Player::Player (QWidget *parent):QMainWindow(parent){
     this->setWindowTitle(tr("Where the sea"));
     this->setFixedSize(240,170);
 
+    processor_ = new DataProcessor(this);
     //menu
     settingsMenu_ = new SettingsMenu(tr("&Settings"),this);
     helpMenu_ = new QMenu (tr("&Help"),this);
@@ -12,7 +13,7 @@ Player::Player (QWidget *parent):QMainWindow(parent){
     toSettings_ = new QAction(tr("Common settings"),settingsMenu_);
     settingsMenu_->addAction(toSettings_);
     //settings window
-    setWin_ = new SettingsWindow("Aa","Bb","Cc",10,settingsMenu_);
+    setWin_ = new SettingsWindow(processor_,settingsMenu_);
 
     //buttons
     widgetForLayout_= new QWidget(this);
@@ -35,7 +36,7 @@ Player::Player (QWidget *parent):QMainWindow(parent){
     setCentralWidget(widgetForLayout_);
     statusBar()->addWidget(stBar_);
 
-    processor_ = new DataProcessor(this);
+
 
     // changes processor state
     connect(buttonOnPause_,SIGNAL(clicked(bool)),buttonOnPause_,SLOT(informAll(bool)));
@@ -55,10 +56,12 @@ Player::Player (QWidget *parent):QMainWindow(parent){
     //SEND SIGNAL TO SETTINS WINDOW TO HIDE SOME PARAMETERS
     connect (processor_,SIGNAL(changeStateView(int)),buttonOnPause_,SLOT(switchView(int)));
 
+    //send new changed parameters to processor
+    connect(setWin_,SIGNAL(sendSettingsToProcessor(QString,QString,QString,int)),processor_,SLOT(changedParametersApply));
     //let frequency change during pause
 }
 
-SettingsWindow::SettingsWindow(QString imDir,QString logFile,QString outputFile, int frequency,QWidget * parent):imageDir_(imDir),logFile_(logFile),outputFile_(outputFile),frequency_(frequency),QDialog(parent){
+SettingsWindow::SettingsWindow(DataProcessor * proc, QWidget * parent):QDialog(parent),processor_(proc){
     this->setWindowTitle(tr("Settings"));
     this->setModal(true);
     this->setWindowFlags(Qt::Window);
@@ -69,6 +72,8 @@ SettingsWindow::SettingsWindow(QString imDir,QString logFile,QString outputFile,
     int spacingvertical=5;
     int spacinghorizontal =3;
 
+    //initialise stored  parameters
+    storedSet_ = new QSettings("SPbSTU","WhereTheSea");
     // Pathes area
     QGroupBox * gPathes = new QGroupBox(tr("Pathes"),this);
     gPathes->setGeometry(5,10,500,100);
@@ -83,9 +88,11 @@ SettingsWindow::SettingsWindow(QString imDir,QString logFile,QString outputFile,
 
     QLabel * label1= new QLabel(tr("Directory with images:"));
     imageDirLine_ = new QLineEdit;
+    imageDir_ = storedSet_->value("/Settings/ImageDir","").toString();
 
     imageDirLine_->setText(imageDir_);
-    QPushButton * but1= new QPushButton(tr("Browse"));
+    but1= new QPushButton(tr("Browse"));
+    connect(but1,SIGNAL(clicked(bool)),this,SLOT(setLabelImageDirFromBrowse()));
 
     ImageDirLayout->addWidget(label1);
     ImageDirLayout->addWidget(imageDirLine_);
@@ -98,8 +105,10 @@ SettingsWindow::SettingsWindow(QString imDir,QString logFile,QString outputFile,
 
     QLabel * label2= new QLabel(tr("Log file:"));
     logFileLine_ = new QLineEdit;
+    logFile_ = storedSet_->value("/Settings/LogFile","").toString();
     logFileLine_->setText(logFile_);
-    QPushButton * but2= new QPushButton(tr("Browse"));
+    but2= new QPushButton(tr("Browse"));
+    connect(but2,SIGNAL(clicked(bool)),this,SLOT(setLabelLogFileFromBrowse()));
 
     LogFileLayout->addSpacing(68);
     LogFileLayout->addWidget(label2);
@@ -112,8 +121,10 @@ SettingsWindow::SettingsWindow(QString imDir,QString logFile,QString outputFile,
 
     QLabel * label3= new QLabel(tr("Output file:"));
     outputFileLine_ = new QLineEdit;
+    outputFile_ = storedSet_->value("/Settings/OutputFile","").toString();
     outputFileLine_->setText(outputFile_);
-    QPushButton * but3= new QPushButton(tr("Browse"));
+    but3= new QPushButton(tr("Browse"));
+    connect(but3,SIGNAL(clicked(bool)),this,SLOT(setLabelOutputFileFromBrowse()));
 
     OutputFileLayout->addSpacing(51);
     OutputFileLayout->addWidget(label3);
@@ -139,9 +150,9 @@ SettingsWindow::SettingsWindow(QString imDir,QString logFile,QString outputFile,
     FrequencyLayout->setMargin(marginvertical);
     FrequencyLayout->setSpacing(spacinghorizontal);
 
-    QLabel * flabel= new QLabel(tr("Frequency (Hz):"));
+    QLabel * flabel= new QLabel(tr("Period (s):"));
     freqBox_ = new QSpinBox;
-
+    frequency_=storedSet_->value("/Settings/Frequency",15).toInt();
     freqBox_->setValue(frequency_);
     freqBox_->setFixedWidth(50);
     freqBox_->setRange(1,100);
@@ -182,16 +193,43 @@ SettingsWindow::SettingsWindow(QString imDir,QString logFile,QString outputFile,
 }
 
 void SettingsWindow::openSettingsWindow(){
-    //block parent
+    //BLOCK PARENT
+    if(processor_->getState()==1){
+        //hide some parameters field when system is paused
+        QPalette  palette;
+        palette.setColor(QPalette::Base,Qt::gray);
+        palette.setColor(QPalette::Text,Qt::darkGray);
 
+        imageDirLine_->setReadOnly(true);
+        imageDirLine_->setPalette(palette);
+
+        logFileLine_->setReadOnly(true);
+        logFileLine_->setPalette(palette);
+
+        outputFileLine_->setReadOnly(true);
+        outputFileLine_->setPalette(palette);
+
+        but1->setDisabled(true);
+        but2->setDisabled(true);
+        but3->setDisabled(true);
+    }
     this->show();
 }
-int SettingsWindow::isFileSpecification(const QString &str){
-    //returns 0 if the input string may be the path to a file (new or existed) and -1 if it's not.
-    //algorithm: devide the input string into 2 parts: dir and file name. Check both to be valid.
+
+void SettingsWindow::setLabelImageDirFromBrowse(){
+    QString str = QFileDialog::getExistingDirectory(0,"Choose the directory to image files","");
+    imageDirLine_->setText(str);
+}
 
 
-    return 0;
+void SettingsWindow::setLabelLogFileFromBrowse(){
+    QString str = QFileDialog::getOpenFileName(0,"Choose the path to the log file","","*.txt");
+    logFileLine_->setText(str);
+}
+
+void SettingsWindow::setLabelOutputFileFromBrowse(){
+    QString str = QFileDialog::getOpenFileName(0,"Choose the path to the output file","","*.txt");
+    outputFileLine_->setText(str);
 }
 
 void SettingsWindow::applySetings(){
@@ -205,30 +243,35 @@ void SettingsWindow::applySetings(){
     }
     else{
         imageDir_= imageDirTemp;
+        storedSet_->setValue("/Settings/ImageDir",imageDir_);
     }
 
     QString logFileTemp= logFileLine_->text();
 
     //check file specification
 
-    if(!isFileSpecification(logFileTemp)){
+    if(!QFile(logFileTemp).exists()){
         QMessageBox::critical(this,tr("Attention"),tr("Incorrect path to the log-file"),QMessageBox::Ok);
         allisok=false;
     }
     else{
         logFile_=logFileTemp;
+        storedSet_->setValue("/Settings/LogFile",logFile_);
     }
 
     QString  outputFileTemp = outputFileLine_->text();
-    if(!isFileSpecification(outputFileTemp)){
+    if(!QFile(outputFileTemp).exists()){
         QMessageBox::critical(this,tr("Attention"),tr("Incorrect path to the output file"),QMessageBox::Ok);
         allisok=false;
     }
     else{
         outputFile_=outputFileLine_->text();
+        storedSet_->setValue("/Settings/OutputFile",outputFile_);
     }
 
     frequency_=freqBox_->value();
+    storedSet_->setValue("Settings/Frequency",frequency_);
+
     if(allisok){
         emit sendSettingsToProcessor(imageDir_,logFile_,outputFile_,frequency_);
         this->hide();
