@@ -40,7 +40,7 @@ public:
     Player (QWidget * parent = nullptr);
     ~Player();
 public slots:
-
+    void showMessage(int);
 };
 
 class SettingsWindow: public QDialog{
@@ -99,7 +99,7 @@ private:
     QVector<QPixmap *> ButtonPicture_;
     QVector<QIcon *> ButtonIcon_;
 
-    int state; //0 - pause, 1- on
+    int state_; //0 - pause, 1- on
 public:
     PausePlayButton(QWidget * parent = nullptr);
 

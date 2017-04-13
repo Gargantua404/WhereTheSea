@@ -64,7 +64,23 @@ Player::Player (QWidget *parent):QMainWindow(parent){
 
     //send new changed parameters to processor
     connect(setWin_,SIGNAL(sendSettingsToProcessor(QString,QString,QString,int)),processor_,SLOT(changedParametersApply(QString,QString,QString,int)));
-    //let frequency change during pause
+
+    connect(processor_,SIGNAL(throwError(int)),this,SLOT(showMessage(int)));
+
+}
+
+void Player::showMessage(int type){
+    switch(type){
+    case 0:
+        QMessageBox::critical(this,tr("Attention"),tr("Incorrect path to the directory with images"), QMessageBox::Ok);
+        break;
+    case 1:
+        QMessageBox::critical(this,tr("Attention"),tr("Incorrect path to the log-file"),QMessageBox::Ok);
+        break;
+    case 2:
+        QMessageBox::critical(this,tr("Attention"),tr("Incorrect path to the output file"),QMessageBox::Ok);
+        break;
+    }
 }
 
 Player::~Player(){
@@ -307,7 +323,7 @@ void StatBar::changeState(int s){
 }
 
 
-PausePlayButton::PausePlayButton(QWidget *parent):QPushButton(parent),state(0),IconsPath_({":/img/on.png",":/img/pause.png"}){
+PausePlayButton::PausePlayButton(QWidget *parent):QPushButton(parent),state_(0),IconsPath_({":/img/on.png",":/img/pause.png"}){
     ButtonPicture_.reserve(2);
     ButtonIcon_.reserve(2);
 
@@ -326,23 +342,22 @@ PausePlayButton::PausePlayButton(QWidget *parent):QPushButton(parent),state(0),I
 }
 
 void PausePlayButton::informAll(bool){
-    state=!state;
-    emit pausePlayButtonClicked(state+1);
+    state_=!state_;
+    emit pausePlayButtonClicked(state_+1);
     //inner state =0 (paused) -> external state = 1
     //inner state =1 (working) -> external state = 2
 }
 
 void PausePlayButton::switchView(int state){
     //input parameter state in external format
-    int inner_state=0;
     if (state ==0 || state ==1){
-        inner_state=0;
+        state_=0;
     }
     else {
-        inner_state=1;
+        state_=1;
     }
-    this->setIcon(*ButtonIcon_[inner_state]);
-    this->setIconSize(ButtonPicture_[inner_state]->rect().size());
+    this->setIcon(*ButtonIcon_[state_]);
+    this->setIconSize(ButtonPicture_[state_]->rect().size());
 }
 
 

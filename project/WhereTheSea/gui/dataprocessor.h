@@ -7,17 +7,6 @@
 
 #include "player.h"
 
-class ActiveQueueString: public QObject,QQueue<QString>{
-    Q_OBJECT
-public:
-    ActiveQueueString(QObject * parent);
-signals:
-    void notEmpty();
-public slots:
-    void ActivePush(const QString &); //send signal if size is increasing
-
-};
-
 class DataProcessor : public QObject
 {
     Q_OBJECT
@@ -33,28 +22,21 @@ private:
     int state_; //0-stopped, 1-paused, 2-working
     int frequency_; //frequency the dir are being looked over
 
-    ActiveQueueString * imagePathesQueue_;
+    QQueue<QString> imagePathesQueue_;
     QFileSystemWatcher * dirWatcher_;
 
+    //COULD BE USELESS
     QDateTime lastFileDateMod; //the date of the modification of the last file in a queue
-    bool isPerforming;
 public:
     explicit DataProcessor(const QSettings &, QObject * parent=nullptr);
-    //DataProcessor(QString imDir ,QString logFile,QString outFile,int frequency, QObject *parent =nullptr);
     ~DataProcessor();
 
-/*    int getState(){
-        return state_;
-    }*/
-
     //algorithms slots
-    /*void start();
-    void pause();
-    void stop();*/
-    void perform();
+    void perform(int state);
 
 signals:
     void changeStateView(int); //cause changes in gui view
+    void throwError(int); //0 - incorrect pathes to files or dirs
 public slots:
     //GUI slots
     void changeButtonApply(int); //apply signals from buttons
