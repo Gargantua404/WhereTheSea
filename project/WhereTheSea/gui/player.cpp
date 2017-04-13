@@ -1,10 +1,16 @@
 #include "player.h"
 
 Player::Player (QWidget *parent):QMainWindow(parent){
+    //initialise stored  parameters
+    storedSet_ = new QSettings("SPbSTU","WhereTheSea",this);
+
     this->setWindowTitle(tr("Where the sea"));
     this->setFixedSize(240,170);
 
-    processor_ = new DataProcessor(this);
+    //create Thread
+    ImThread_ = new ThreadImagePerform;
+    ImThread_->start();
+
     //menu
     settingsMenu_ = new SettingsMenu(tr("&Settings"),this);
     helpMenu_ = new QMenu (tr("&Help"),this);
@@ -13,7 +19,10 @@ Player::Player (QWidget *parent):QMainWindow(parent){
     toSettings_ = new QAction(tr("Common settings"),settingsMenu_);
     settingsMenu_->addAction(toSettings_);
     //settings window
-    setWin_ = new SettingsWindow(processor_,settingsMenu_);
+    setWin_ = new SettingsWindow(storedSet_,settingsMenu_);
+
+    processor_ = new DataProcessor(*storedSet_); //don't pass the parent reference cause the "processor_" object is in another thread
+    processor_->moveToThread(ImThread_);
 
     //buttons
     widgetForLayout_= new QWidget(this);
@@ -36,8 +45,6 @@ Player::Player (QWidget *parent):QMainWindow(parent){
     setCentralWidget(widgetForLayout_);
     statusBar()->addWidget(stBar_);
 
-
-
     // changes processor state
     connect(buttonOnPause_,SIGNAL(clicked(bool)),buttonOnPause_,SLOT(informAll(bool)));
     connect(buttonOnPause_,SIGNAL(pausePlayButtonClicked(int)),processor_,SLOT(changeButtonApply(int)));
@@ -47,21 +54,26 @@ Player::Player (QWidget *parent):QMainWindow(parent){
 
     //inner gui connections
     connect (toSettings_,SIGNAL(triggered()), setWin_, SLOT(openSettingsWindow()));
-    //OPEN SETTINGS WINDOW
     //OPEN HELP WINDOW
 
     //changes gui view
     connect (processor_,SIGNAL(changeStateView(int)), stBar_,SLOT(changeState(int)));
     connect (processor_,SIGNAL(changeStateView(int)),settingsMenu_,SLOT(changeState(int)));
-    //SEND SIGNAL TO SETTINS WINDOW TO HIDE SOME PARAMETERS
+    connect (processor_,SIGNAL(changeStateView(int)),setWin_,SLOT(changeState(int)));
     connect (processor_,SIGNAL(changeStateView(int)),buttonOnPause_,SLOT(switchView(int)));
 
     //send new changed parameters to processor
-    connect(setWin_,SIGNAL(sendSettingsToProcessor(QString,QString,QString,int)),processor_,SLOT(changedParametersApply));
+    connect(setWin_,SIGNAL(sendSettingsToProcessor(QString,QString,QString,int)),processor_,SLOT(changedParametersApply(QString,QString,QString,int)));
     //let frequency change during pause
 }
 
-SettingsWindow::SettingsWindow(DataProcessor * proc, QWidget * parent):QDialog(parent),processor_(proc){
+Player::~Player(){
+    //destruct thread
+    ImThread_->quit();
+    ImThread_->wait();
+}
+
+SettingsWindow::SettingsWindow(QSettings * storedSet, QWidget * parent):storedSet_(storedSet),QDialog(parent){
     this->setWindowTitle(tr("Settings"));
     this->setModal(true);
     this->setWindowFlags(Qt::Window);
@@ -72,8 +84,7 @@ SettingsWindow::SettingsWindow(DataProcessor * proc, QWidget * parent):QDialog(p
     int spacingvertical=5;
     int spacinghorizontal =3;
 
-    //initialise stored  parameters
-    storedSet_ = new QSettings("SPbSTU","WhereTheSea");
+
     // Pathes area
     QGroupBox * gPathes = new QGroupBox(tr("Pathes"),this);
     gPathes->setGeometry(5,10,500,100);
@@ -194,25 +205,6 @@ SettingsWindow::SettingsWindow(DataProcessor * proc, QWidget * parent):QDialog(p
 
 void SettingsWindow::openSettingsWindow(){
     //BLOCK PARENT
-    if(processor_->getState()==1){
-        //hide some parameters field when system is paused
-        QPalette  palette;
-        palette.setColor(QPalette::Base,Qt::gray);
-        palette.setColor(QPalette::Text,Qt::darkGray);
-
-        imageDirLine_->setReadOnly(true);
-        imageDirLine_->setPalette(palette);
-
-        logFileLine_->setReadOnly(true);
-        logFileLine_->setPalette(palette);
-
-        outputFileLine_->setReadOnly(true);
-        outputFileLine_->setPalette(palette);
-
-        but1->setDisabled(true);
-        but2->setDisabled(true);
-        but3->setDisabled(true);
-    }
     this->show();
 }
 
@@ -283,6 +275,28 @@ void SettingsWindow::cancelSettings(){
     this->hide();
 }
 
+void SettingsWindow::changeState(int state){
+    //only paused state
+    if(state==1){
+        QPalette  palette;
+        palette.setColor(QPalette::Base,Qt::gray);
+        palette.setColor(QPalette::Text,Qt::darkGray);
+
+        imageDirLine_->setReadOnly(true);
+        imageDirLine_->setPalette(palette);
+
+        logFileLine_->setReadOnly(true);
+        logFileLine_->setPalette(palette);
+
+        outputFileLine_->setReadOnly(true);
+        outputFileLine_->setPalette(palette);
+
+        but1->setDisabled(true);
+        but2->setDisabled(true);
+        but3->setDisabled(true);
+    }
+}
+
 StatBar::StatBar(QWidget *parent):QLabel(parent),stateArr_({tr("Stopped") , tr("Paused"), tr("Working")}){
     this->setText(stateArr_.at(0)); //initialize by "stopped" value
 }
@@ -348,7 +362,7 @@ void StopButton::informAll(bool){
 
 void SettingsMenu::changeState(int state){
     //s in ext
-    if (state==0 || state==1){
+    if (state==0 || state ==1){
         this->setDisabled(false);
     }
     else{

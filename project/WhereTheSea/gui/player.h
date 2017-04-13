@@ -13,6 +13,7 @@ class PausePlayButton;
 class StopButton;
 class SettingsMenu;
 class DataProcessor;
+class ThreadImagePerform;
 
 class Player: public QMainWindow  {
     Q_OBJECT
@@ -31,10 +32,13 @@ private:
 
     StatBar * stBar_;
 
+    QSettings * storedSet_;
+
+    ThreadImagePerform * ImThread_;
     DataProcessor * processor_;
 public:
     Player (QWidget * parent = nullptr);
-
+    ~Player();
 public slots:
 
 };
@@ -54,13 +58,12 @@ private:
     QPushButton * but1;
     QPushButton * but2;
     QPushButton * but3;
-    QSettings * storedSet_;
 
-    DataProcessor * processor_; //DataProcessor is for tracking of state to hide some oarameters in settingswindow
+    QSettings * storedSet_;
     friend class ::Player;
 public:
     //SettingsWindow (QString imDir,QString logFile,QString outputFile, int frequency, QWidget * parent = nullptr);
-    SettingsWindow(DataProcessor * proc, QWidget * parent =nullptr);
+    SettingsWindow(QSettings * storedSet, QWidget * parent =nullptr);
 
     void checkInput();
 signals:
@@ -74,6 +77,8 @@ public slots:
 
     void applySetings();
     void cancelSettings();
+
+     void changeState(int); // desable while "paused"
 };
 
 class StatBar: public QLabel{
@@ -130,6 +135,13 @@ public:
     SettingsMenu(const QString & title, QWidget * parent = nullptr): QMenu(title, parent){}
 public slots:
     void changeState(int);
+};
+
+class ThreadImagePerform:public QThread{
+public:
+    void run(){
+        exec();
+    }
 };
 
 /*class DirValidator: public QValidator{
