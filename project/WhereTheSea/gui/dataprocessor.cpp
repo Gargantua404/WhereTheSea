@@ -10,12 +10,9 @@ DataProcessor::DataProcessor(const QSettings & settings, QObject * parent):QObje
     state_=0;
     frequency_=settings.value("/Settings/Frequency",15).toInt();
 
-    dirWatcher_= new QFileSystemWatcher(this);
-    dirWatcher_->addPath(imageDirStr_);
-
-    lastFileDateMod =  QDateTime::fromString("M1d1y0000:00:00","'M'M'd'd'y'yyhh:mm:ss");
-
-    connect(dirWatcher_,SIGNAL(directoryChanged(QString)),this,SLOT(readImagePathes()));
+    dirModel_=new QFileSystemModel;
+    dirModel_->setRootPath(imageDirStr_);
+    dirModel_->setFilter(QDir::Files);
 }
 
 DataProcessor::~DataProcessor(){
@@ -37,8 +34,6 @@ void DataProcessor::changeButtonApply(int state){
         return;
     }
 
-    //and here hust send signals
-
     int state_prev=state_;
     state_=state;
 
@@ -47,24 +42,26 @@ void DataProcessor::changeButtonApply(int state){
         if(state_==0){
             if(state_prev==1 || state_prev==2){
                 perform(state_);
+                //can be less then fequency images in queue
+                imagePathesQueue_.clear(); //clear after stopping and performing residual images
             }
+        disconnect(dirModel_,SIGNAL(rowsInserted(QModelIndex,int,int)),this,SLOT(readImagesAndRun(QModelIndex,int,int)));
         }
-        disconnect(dirWatcher_,SIGNAL(directoryChanged(QString)),this,SLOT(readImagePathes()));
         this->blockSignals(false);
         emit changeStateView(state_);
     }
     else{
-        readImagePathes();
-        connect(dirWatcher_,SIGNAL(directoryChanged(QString)),this,SLOT(readImagePathes()));
+        connect(dirModel_,SIGNAL(rowsInserted(QModelIndex,int,int)),this,SLOT(readImagesAndRun(QModelIndex,int,int)));
         this->blockSignals(false);
         emit changeStateView(state_);
+        if(state_prev==0){
+            readAllImagesOnce();
+        }
         perform(state_);
     }
 }
 
 void DataProcessor::changedParametersApply(QString imDir, QString logFile, QString outFile, int freq) {
-    dirWatcher_->removePath(imageDirStr_);
-
     imageDirStr_=imDir;
     logFileStr_=logFile;
     outputFileStr_=outFile;
@@ -74,23 +71,35 @@ void DataProcessor::changedParametersApply(QString imDir, QString logFile, QStri
     logFile_.setFileName(logFileStr_);
     outputFile_.setFileName(outputFileStr_);
 
-    dirWatcher_->addPath(imageDirStr_);
+    dirModel_->setRootPath(imageDirStr_);
 }
 
-void DataProcessor::perform(int state){
-    while(state!=1 && !imagePathesQueue_.isEmpty()){
-        qDebug() << QTime::currentTime();
-        imagePathesQueue_.dequeue();
-        QCoreApplication::processEvents(QEventLoop::AllEvents, 1000);//MUFFLE
-            //condition is for not to check twice
-            //CHECK ALL SIGNALS
+void DataProcessor::readAllImagesOnce(){
+    QStringList FirstImages=  imageDir_.entryList(QStringList(), QDir::Files);
+    for (int i=0; i<FirstImages.size(); ++i){
+           imagePathesQueue_.enqueue(FirstImages.at(i));
     }
 }
 
-void DataProcessor::readImagePathes(){
-    /*imageDir_.setFilter();
-    QList<QString> str = imageDir_.entryList(".png",QDir::Files,QDir::Time);*/
-    imagePathesQueue_.enqueue("C:/test.txt"); // MUFFLE
-    imagePathesQueue_.enqueue("C:/test2.txt"); // MUFFLE
-    imagePathesQueue_.enqueue("C:/test3.txt"); // MUFFLE
+void DataProcessor::perform(int state){
+    while(state!=1 && imagePathesQueue_.size()>=frequency_){
+        //MUFFLE
+        for(int j=0;j<frequency_;++j){
+            qDebug() << imagePathesQueue_.first();
+            for(int i=0;i<INT8_MAX;++i){
+                ++i;
+            }
+            imagePathesQueue_.dequeue();
+        }
+        QCoreApplication::processEvents(QEventLoop::AllEvents); //NOT TESTED
+    }
+}
+
+void DataProcessor::readImagesAndRun(const QModelIndex& parent, int start, int end){
+   for(int i=start; i<=end;++i ){
+        QModelIndex PathIndex=dirModel_->index(i,0,parent);
+        QVariant PathName= PathIndex.data();
+        imagePathesQueue_.enqueue(PathName.toString());
+    }
+    perform(state_);
 }

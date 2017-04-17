@@ -177,7 +177,7 @@ SettingsWindow::SettingsWindow(QSettings * storedSet, QWidget * parent):storedSe
     FrequencyLayout->setMargin(marginvertical);
     FrequencyLayout->setSpacing(spacinghorizontal);
 
-    QLabel * flabel= new QLabel(tr("Period (s):"));
+    QLabel * flabel= new QLabel(tr("Minimal amount of files to process:"));
     freqBox_ = new QSpinBox;
     frequency_=storedSet_->value("/Settings/Frequency",15).toInt();
     freqBox_->setValue(frequency_);

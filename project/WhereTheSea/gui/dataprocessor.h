@@ -20,30 +20,29 @@ private:
     QFile outputFile_;
 
     int state_; //0-stopped, 1-paused, 2-working
-    int frequency_; //frequency the dir are being looked over
+    int frequency_; //minimal number of files to process
 
     QQueue<QString> imagePathesQueue_;
-    QFileSystemWatcher * dirWatcher_;
-
-    //COULD BE USELESS
-    QDateTime lastFileDateMod; //the date of the modification of the last file in a queue
+    QFileSystemModel * dirModel_;
 public:
     explicit DataProcessor(const QSettings &, QObject * parent=nullptr);
     ~DataProcessor();
 
-    //algorithms slots
+    //algorithms methods
+    void readAllImagesOnce();
     void perform(int state);
 
 signals:
     void changeStateView(int); //cause changes in gui view
-    void throwError(int); //0 - incorrect pathes to files or dirs
+    void throwError(int); //0,1,2 - incorrect pathes to files or dirs
+
 public slots:
     //GUI slots
     void changeButtonApply(int); //apply signals from buttons
-    void changedParametersApply(QString,QString,QString,int);
+    void changedParametersApply(QString,QString,QString,int); //apply changes from setting window
 
-    void readImagePathes(); //watch dir and populate the queue
-
+    //algorithm slots
+    void readImagesAndRun(const QModelIndex &, int, int);
 };
 
 #endif // DATAPROCESSOR_H
