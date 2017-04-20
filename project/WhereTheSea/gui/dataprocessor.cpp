@@ -86,9 +86,6 @@ void DataProcessor::perform(int state){
         //MUFFLE
         for(int j=0;j<frequency_;++j){
             qDebug() << imagePathesQueue_.first();
-            for(int i=0;i<INT8_MAX;++i){
-                ++i;
-            }
             imagePathesQueue_.dequeue();
         }
         QCoreApplication::processEvents(QEventLoop::AllEvents); //NOT TESTED

@@ -323,7 +323,7 @@ void StatBar::changeState(int s){
 }
 
 
-PausePlayButton::PausePlayButton(QWidget *parent):QPushButton(parent),state_(0),IconsPath_({":/img/on.png",":/img/pause.png"}){
+PausePlayButton::PausePlayButton(QWidget *parent):QPushButton(parent),state_(0),IconsPath_({":/img/on2.jpg",":/img/pause2.jpg"}){
     ButtonPicture_.reserve(2);
     ButtonIcon_.reserve(2);
 
@@ -361,7 +361,7 @@ void PausePlayButton::switchView(int state){
 }
 
 
-StopButton::StopButton(QWidget *parent):QPushButton(parent),IconPath_({":/img/off.png"}){
+StopButton::StopButton(QWidget *parent):QPushButton(parent),IconPath_({":/img/off2.jpg"}){
     ButtonPicture_ = new QPixmap(IconPath_);
     ButtonIcon_ = new QIcon(*ButtonPicture_);
     this->setIcon(*ButtonIcon_);
