@@ -1,8 +1,5 @@
 <RCC>
     <qresource prefix="/">
-        <file>img/off.png</file>
-        <file>img/on.png</file>
-        <file>img/pause.png</file>
         <file>img/pause2.jpg</file>
         <file>img/on2.jpg</file>
         <file>img/off2.jpg</file>
