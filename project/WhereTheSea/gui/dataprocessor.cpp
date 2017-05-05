@@ -1,21 +1,28 @@
 #include "dataprocessor.h"
 
-DataProcessor::DataProcessor(const QSettings & settings, QObject * parent):QObject(parent){
+DataProcessor::DataProcessor(const QSettings & settings, QObject * parent):QObject(parent),RadarProccessor_(){
     imageDirStr_= settings.value("/Settings/ImageDir","").toString();
     logFileStr_=settings.value("/Settings/LogFile","").toString();
     outputFileStr_=settings.value("/Settings/OutputFile","").toString();
     imageDir_.setCurrent(imageDirStr_);
-    logFile_.setFileName(logFileStr_);
-    outputFile_.setFileName(outputFileStr_);
+    logFile_=fopen(logFileStr_.toStdString().c_str(),"w");
+
     state_=0;
     frequency_=settings.value("/Settings/Frequency",15).toInt();
 
     dirModel_=new QFileSystemModel;
     dirModel_->setRootPath(imageDirStr_);
     dirModel_->setFilter(QDir::Files);
+
+    RadarProccessor_.setPath(logFile_);
+    RadarProccessor_.setPath(outputFileStr_.toStdString());
+    RadarProccessor_.setFreq(frequency_);
 }
 
 DataProcessor::~DataProcessor(){
+    if(logFile_!=NULL){
+        fclose(logFile_);
+    }
 }
 
 void DataProcessor::changeButtonApply(int state){
@@ -24,12 +31,12 @@ void DataProcessor::changeButtonApply(int state){
         throwError(0);
         return;
     }
-    else if(!logFile_.exists(logFileStr_)){
+    else if(!QFile(logFileStr_).exists(logFileStr_)){
         throwError(1);
         return;
 
     }
-    else if(!outputFile_.exists(outputFileStr_)){
+    else if(!QFile(outputFileStr_).exists(outputFileStr_)){
         throwError(2);
         return;
     }
@@ -62,16 +69,27 @@ void DataProcessor::changeButtonApply(int state){
 }
 
 void DataProcessor::changedParametersApply(QString imDir, QString logFile, QString outFile, int freq) {
-    imageDirStr_=imDir;
-    logFileStr_=logFile;
-    outputFileStr_=outFile;
-    frequency_=freq;
-
-    imageDir_.setCurrent(imageDirStr_);
-    logFile_.setFileName(logFileStr_);
-    outputFile_.setFileName(outputFileStr_);
-
-    dirModel_->setRootPath(imageDirStr_);
+    if(imageDirStr_!=imDir){
+        imageDirStr_=imDir;
+        imageDir_.setCurrent(imageDirStr_);
+        dirModel_->setRootPath(imageDirStr_);
+    }
+    if (logFileStr_!=logFile){
+        if(logFile_!=NULL){
+            fclose(logFile_);
+        }
+        logFileStr_=logFile;
+        logFile_=fopen(logFileStr_.toStdString().c_str(),"w");
+        RadarProccessor_.setPath(logFile_);
+    }
+    if (outputFileStr_!=outFile){
+        outputFileStr_=outFile;
+        RadarProccessor_.setPath(outputFileStr_.toStdString());
+    }
+    if (frequency_!=freq){
+        frequency_=freq;
+        RadarProccessor_.setFreq(frequency_);
+    };
 }
 
 void DataProcessor::readAllImagesOnce(){
@@ -84,10 +102,14 @@ void DataProcessor::readAllImagesOnce(){
 void DataProcessor::perform(int state){
     while(state!=1 && imagePathesQueue_.size()>=frequency_){
         //MUFFLE
+        list<string> img_files_to_pass;
         for(int j=0;j<frequency_;++j){
+            img_files_to_pass.push_back(imagePathesQueue_.first().toStdString());
             qDebug() << imagePathesQueue_.first();
             imagePathesQueue_.dequeue();
         }
+        RadarProccessor_.run(img_files_to_pass);
+
         QCoreApplication::processEvents(QEventLoop::AllEvents); //NOT TESTED
     }
 }

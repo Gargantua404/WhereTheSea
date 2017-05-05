@@ -6,7 +6,7 @@
 #include <QFileSystemWatcher>
 
 #include "player.h"
-
+#include "../core/Radar2.h"
 class DataProcessor : public QObject
 {
     Q_OBJECT
@@ -16,14 +16,15 @@ private:
     QString outputFileStr_;
 
     QDir imageDir_;
-    QFile logFile_;
-    QFile outputFile_;
+    FILE * logFile_;
 
     int state_; //0-stopped, 1-paused, 2-working
     int frequency_; //minimal number of files to process
 
     QQueue<QString> imagePathesQueue_;
     QFileSystemModel * dirModel_;
+
+    Radar RadarProccessor_;
 public:
     explicit DataProcessor(const QSettings &, QObject * parent=nullptr);
     ~DataProcessor();

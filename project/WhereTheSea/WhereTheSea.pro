@@ -1,4 +1,12 @@
 TEMPLATE = subdirs
+CONFIG += ordered
 
 SUBDIRS += \
-    gui
+    libEasyBMP\
+    core\
+    gui \
+
+
+gui.depends = core
+core.depends =libEasyBMP
+
