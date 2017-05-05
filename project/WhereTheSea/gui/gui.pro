@@ -13,8 +13,8 @@ TEMPLATE = app
 Debug:LIBS += ../../Build/core/debug/libcore.a
 Debug:LIBS += ../../Build/libEasyBMP/debug/liblibEasyBMP.a
 
-Release:LIBS += ../../Build/core/debug/libcore.a
-Release:LIBS += ../../Build/libEasyBMP/debug/liblibEasyBMP.a
+Release:LIBS += ../../Build/core/release/libcore.a
+Release:LIBS += ../../Build/libEasyBMP/release/liblibEasyBMP.a
 
 # The following define makes your compiler emit warnings if you use
 # any feature of Qt which as been marked as deprecated (the exact warnings
