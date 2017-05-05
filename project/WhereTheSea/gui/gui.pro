@@ -10,8 +10,11 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 TARGET = gui
 TEMPLATE = app
-LIBS += ../../Debug_32/core/debug/libcore.a
-LIBS += ../../Debug_32/libEasyBMP/debug/liblibEasyBMP.a
+Debug:LIBS += ../../Build/core/debug/libcore.a
+Debug:LIBS += ../../Build/libEasyBMP/debug/liblibEasyBMP.a
+
+Release:LIBS += ../../Build/core/debug/libcore.a
+Release:LIBS += ../../Build/libEasyBMP/debug/liblibEasyBMP.a
 
 # The following define makes your compiler emit warnings if you use
 # any feature of Qt which as been marked as deprecated (the exact warnings
