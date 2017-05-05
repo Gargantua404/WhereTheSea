@@ -91,8 +91,7 @@ double Radar::delta(double x1, double y1, double s1, double x2, double y2, doubl
 }
 BMP Radar::nextStep(BMP image)
 {
-	vector<double> oldox = ox, oldoy = oy, oldos = os;
-	vector<int> costsi, costsj;
+	vector<double> oldOx = ox, oldOy = oy, oldOs = os;
 	world = *(new BMP(image));
 	clean();
 	findObjects();
@@ -101,126 +100,77 @@ BMP Radar::nextStep(BMP image)
 		firstImage = false;
 		return world;
 	}
-	BMP imageOut = world;
+	vector<int> costsI, costsJ;
 	vector<vector<double>> costs;
-	for (int i = 0; i < oldox.size(); i++)
-		costsi.push_back(i);
+	BMP imageOut = world;
+	for (int i = 0; i < oldOx.size(); i++)
+		costsI.push_back(i);
 	for (int j = 0; j < ox.size(); j++)
-		costsj.push_back(j);
-	for (int i = 0; i < oldox.size(); i++)
-	{
-		vector<double> newvector;
-		costs.push_back(newvector);
+		costsJ.push_back(j);
+	costs.resize(oldOx.size(), *(new vector<double>));
+	for (int i = 0; i < oldOx.size(); i++)
 		for (int j = 0; j < ox.size(); j++)
-			costs[i].push_back(delta(oldox[i], oldoy[i], oldos[i], ox[j], oy[j], os[j]));
-	}
-	if (costs.size() > costs[0].size()) //now less
+			costs[i].push_back(delta(oldOx[i], oldOy[i], oldOs[i], ox[j], oy[j], os[j]));
+	while ((costs.size() > 0) && (costs[0].size() > 0))
 	{
-		vector<double> mins;
-		for (int i = 0; i < costs.size(); i++)
-		{
-			int minarg = 0;
-			vector<double> tl = costs[i];
-			for (int j = 0; j < costs[0].size(); j++)
-				if (tl[j] < tl[minarg])
-					minarg = j;
-			mins.push_back(tl[minarg]);
-		}
-		while (costs.size() > costs[0].size())
-		{
-			int maxminarg = 0;
-			for (int i = 0; i < mins.size(); i++)
-				if (mins[i] > mins[maxminarg]) maxminarg = i;
-			mins.erase(mins.begin() + maxminarg);
-			costsi.erase(costsi.begin() + maxminarg);
-			costs.erase(costs.begin() + maxminarg);
-		}
-	}
-	if (costs.size() < costs[0].size()) //now more
-	{
-		vector<double> mins;
-		for (int j = 0; j < costs[0].size(); j++)
-		{
-			int minarg = 0;
-			vector<double> tl1, tl2 = costs[0];
-			for (int i = 0; i < costs.size(); i++)
-			{
-				tl1 = costs[i];
-				if (tl1[j] < tl2[j])
-				{
-					minarg = i;
-					tl2 = costs[minarg];
-				}
-			}
-			mins.push_back(tl2[j]);
-		}
-		while (costs.size() < costs[0].size())
-		{
-			int maxminarg = 0;
-			for (int i = 0; i < mins.size(); i++)
-				if (mins[i] > mins[maxminarg]) maxminarg = i;
-			mins.erase(mins.begin() + maxminarg);
-			costsj.erase(costsj.begin() + maxminarg);
-			for (int i = 0; i < costs.size(); i++)
-				costs[i].erase(costs[i].begin() + maxminarg);
-		}
-	}
-	while (costs.size() > 0)
-	{
-		int minargi = 0;
-		int minargj = 0;
+		int minArgI = 0;
+		int minArgJ = 0;
 		vector<double> tl1, tl2 = costs[0];
 		for (int i = 0; i < costs.size(); i++)
 		{
 			tl1 = costs[i];
 			for (int j = 0; j < costs[0].size(); j++)
-				if (tl1[j] < tl2[minargj])
+				if (tl1[j] < tl2[minArgJ])
 				{
-					minargi = i;
-					tl2 = costs[minargi];
-					minargj = j;
+					minArgI = i;
+					tl2 = costs[minArgI];
+					minArgJ = j;
 				}
 		}
-		int oo = costsi[minargi]; //oldobject
-		int no = costsj[minargj]; //newobject
-		if (tl2[minargj] <= maxdelta)
+		int oo = costsI[minArgI]; //oldobject
+		int no = costsJ[minArgJ]; //newobject
+		if (tl2[minArgJ] <= maxDelta)
 		{
 			double x = ox[no], y = oy[no];
-			double tx = x + (x - oldox[oo]) * 2, ty = y + (y - oldoy[oo]) * 2;
-			ovx[no] = ox[no] - oldox[oo];
-			ovy[no] = oy[no] - oldoy[oo];
+			double tx = x + (x - oldOx[oo]) * 2, ty = y + (y - oldOy[oo]) * 2;
+			ovx[no] = ox[no] - oldOx[oo];
+			ovy[no] = oy[no] - oldOy[oo];
 			while ((x - tx) * (x - tx) + (y - ty) * (y - ty) > 1)
 			{
 				if (iw((int)x, (int)y))
 					imageOut.SetPixel((int)x, (int)y, red);
-				double dcoord = sqrt((x - tx) * (x - tx) + (y - ty) * (y - ty));
-				x += (tx - x) / dcoord;
-				y += (ty - y) / dcoord;
+				double dCoord = sqrt((x - tx) * (x - tx) + (y - ty) * (y - ty));
+				x += (tx - x) / dCoord;
+				y += (ty - y) / dCoord;
 			}
-			costs.erase(costs.begin() + minargi);
-			costsi.erase(costsi.begin() + minargi);
+			costs.erase(costs.begin() + minArgI);
+			costsI.erase(costsI.begin() + minArgI);
+			costsJ.erase(costsJ.begin() + minArgJ);
 			for (int i = 0; i < costs.size(); i++)
-				costs[i].erase(costs[i].begin() + minargj);
-			costsj.erase(costsj.begin() + minargj);
+				costs[i].erase(costs[i].begin() + minArgJ);
 		}
 		else costs.clear();
 	}
 	return imageOut;
 }
-void Radar::writeLog()
+void Radar::writeOutput()
 {
-	char str[200];
-	sprintf_s(str, 200, "tick #%d\n", tick);
-	fputs(str, logFile);
+    fprintf(outputFile,"tick #%d\n",tick);
 	tick++;
 	for (int i = 0; i < ox.size(); i++)
 	{
-		sprintf_s(str, 200, "%f %f %f %f %f\n", ox[i], oy[i], os[i], ovx[i], ovy[i]);
-		fputs(str, logFile);
+        fprintf(outputFile,"%f %f %f %f %f\n",ox[i], oy[i], os[i], ovx[i], ovy[i]);
 	}
 }
 Radar::Radar()
 {
+    logFile=NULL;
+    outputFile=NULL;
+}
+Radar::~Radar()
+{
+	if (shouldCloseOutputFile) fclose(outputFile);
+	if (shouldCloseLogFile) fclose(logFile);
 }
 void Radar::setFreq(int newFreq)
 {
@@ -232,22 +182,72 @@ void Radar::clearCashe()
 	oy.clear();
 	os.clear();
 }
-void Radar::setPath(const string newOutputFileName)
+void Radar::setOutputFile(const string newOutputFileName)
 {
-	outputFile = *(new string(newOutputFileName));
+	if (logFile != NULL)
+	{
+        fprintf(logFile,"Set new output file with path %s\n", newOutputFileName.c_str());
+	}
+	if (shouldCloseOutputFile) fclose(outputFile);
+    fopen_s(&outputFile, newOutputFileName.c_str(), "a");
+	shouldCloseOutputFile = true;
 }
-void Radar::setPath(FILE *newLogFile)
+void Radar::setOutputFile(FILE *newOutputFile)
 {
+	if (logFile != NULL) fputs("Set new output file\n", logFile);
+	if (shouldCloseOutputFile) fclose(outputFile);
+	outputFile = newOutputFile;
+	shouldCloseOutputFile = false;
+}
+void Radar::setLogFile(const string newLogFileName)
+{
+    if (logFile != NULL)
+	{
+        fprintf(logFile,"Set new log file with path %s\n", newLogFileName.c_str());
+	}
+	if (shouldCloseLogFile) fclose(logFile);
+	fopen_s(&logFile, newLogFileName.c_str(), "a");
+	shouldCloseLogFile = true;
+	if (logFile != NULL) fputs("This is new log file\n", logFile);
+}
+void Radar::setLogFile(FILE *newLogFile)
+{
+
+    if (logFile != NULL) fputs("Set new log file\n", logFile);
+    if (shouldCloseLogFile) fclose(logFile);
 	logFile = newLogFile;
+	shouldCloseLogFile = false;
+	if (logFile != NULL) fputs("This is new log file\n", logFile);
+}
+int Radar::run(const list<string> inputFileNames, bool createOutputImage, const string outputImageFileName)
+{
+	if (logFile != NULL)
+	{
+		fputs("run:\n", logFile);
+		fputs(" inputFileNames = ", logFile);
+		for (list<string>::const_iterator i = inputFileNames.begin(); i != inputFileNames.end(); i++)
+		{
+			if (i != inputFileNames.begin()) fputs(", ", logFile);
+			fputs((*i).c_str(), logFile);
+		}
+		fputs("\n", logFile);
+		if (createOutputImage)
+		{
+            fprintf(logFile," outputImageFileName = %s\n", outputImageFileName.c_str());
+		}
+	}
+	if (inputFileNames.size() != freq) return 1;
+	string inputImageFileName = inputFileNames.front();
+	BMP inputImage;
+	inputImage.ReadFromFile(inputImageFileName.c_str());
+	if (createOutputImage) nextStep(inputImage).WriteToFile(outputImageFileName.c_str());
+	else nextStep(inputImage);
+	writeOutput();
+	return 0;
 }
 int Radar::run(const list<string> inputFileNames)
 {
-	if (inputFileNames.size() != freq) return 1;
-	BMP inputImage;
-	inputImage.ReadFromFile(inputFileNames.front().c_str());
-	nextStep(inputImage).WriteToFile(outputFile.c_str());
-	writeLog();
-	return 0;
+	return run(inputFileNames, false, "");
 }
 BMP Radar::getImage()
 {

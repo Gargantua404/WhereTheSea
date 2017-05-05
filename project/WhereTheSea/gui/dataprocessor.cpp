@@ -6,7 +6,6 @@ DataProcessor::DataProcessor(const QSettings & settings, QObject * parent):QObje
     outputFileStr_=settings.value("/Settings/OutputFile","").toString();
     imageDir_.setCurrent(imageDirStr_);
     logFile_=fopen(logFileStr_.toStdString().c_str(),"w");
-
     state_=0;
     frequency_=settings.value("/Settings/Frequency",15).toInt();
 
@@ -14,8 +13,8 @@ DataProcessor::DataProcessor(const QSettings & settings, QObject * parent):QObje
     dirModel_->setRootPath(imageDirStr_);
     dirModel_->setFilter(QDir::Files);
 
-    RadarProccessor_.setPath(logFile_);
-    RadarProccessor_.setPath(outputFileStr_.toStdString());
+    RadarProccessor_.setLogFile(logFile_);
+    RadarProccessor_.setOutputFile(outputFileStr_.toStdString());
     RadarProccessor_.setFreq(frequency_);
 }
 
@@ -80,11 +79,11 @@ void DataProcessor::changedParametersApply(QString imDir, QString logFile, QStri
         }
         logFileStr_=logFile;
         logFile_=fopen(logFileStr_.toStdString().c_str(),"w");
-        RadarProccessor_.setPath(logFile_);
+        RadarProccessor_.setLogFile(logFile_);
     }
     if (outputFileStr_!=outFile){
         outputFileStr_=outFile;
-        RadarProccessor_.setPath(outputFileStr_.toStdString());
+        RadarProccessor_.setOutputFile(outputFileStr_.toStdString());
     }
     if (frequency_!=freq){
         frequency_=freq;
@@ -109,7 +108,6 @@ void DataProcessor::perform(int state){
             imagePathesQueue_.dequeue();
         }
         RadarProccessor_.run(img_files_to_pass);
-
         QCoreApplication::processEvents(QEventLoop::AllEvents); //NOT TESTED
     }
 }
