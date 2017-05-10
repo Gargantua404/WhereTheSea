@@ -1,21 +1,31 @@
 #include "dataprocessor.h"
 
-DataProcessor::DataProcessor(const QSettings & settings, QObject * parent):QObject(parent),RadarProccessor_(){
+DataProcessor::DataProcessor(const QSettings & settings, QObject * parent):QObject(parent),logFile_(NULL),RadarProccessor_(),localTime_(QDateTime::currentDateTime()){
     imageDirStr_= settings.value("/Settings/ImageDir","").toString();
     logFileStr_=settings.value("/Settings/LogFile","").toString();
     outputFileStr_=settings.value("/Settings/OutputFile","").toString();
     imageDir_.setCurrent(imageDirStr_);
-    logFile_=fopen(logFileStr_.toStdString().c_str(),"w");
-    state_=0;
     frequency_=settings.value("/Settings/Frequency",15).toInt();
+    logFile_=fopen(logFileStr_.toStdString().c_str(),"w");
+
+    if(logFile_!=NULL){
+        fprintf(logFile_,"Log file <%s> creation: %s\n"
+                    "Directory with images: %s\n"
+                    "Output file with objects' motion data: %s\n"
+                    "Minimal anount of files to perform: %i\n\n",                logFileStr_.toStdString().c_str(),localTime_.toString("yyyy-MM-dd hh:mm:ss").toStdString().c_str(), imageDirStr_.toStdString().c_str(), outputFileStr_.toStdString().c_str(), frequency_);
+    }
 
     dirModel_=new QFileSystemModel;
     dirModel_->setRootPath(imageDirStr_);
     dirModel_->setFilter(QDir::Files);
+    dirModel_->setNameFilters(QStringList()<<"*.bmp");
+    dirModel_->setNameFilterDisables(false);
 
     RadarProccessor_.setLogFile(logFile_);
     RadarProccessor_.setOutputFile(outputFileStr_.toStdString());
     RadarProccessor_.setFreq(frequency_);
+
+    state_=0;
 }
 
 DataProcessor::~DataProcessor(){
@@ -27,6 +37,9 @@ DataProcessor::~DataProcessor(){
 void DataProcessor::changeButtonApply(int state){
     //input parameter state in external format
     if(!imageDir_.exists(imageDirStr_)){
+        if(logFile_!=NULL){
+            fprintf(logFile_,"Incorrect path to the directory with images\n");
+        }
         throwError(0);
         return;
     }
@@ -36,6 +49,9 @@ void DataProcessor::changeButtonApply(int state){
 
     }
     else if(!QFile(outputFileStr_).exists(outputFileStr_)){
+        if(logFile_!=NULL){
+            fprintf(logFile_,"Incorrect path to the output file with objects' motion data with images\n");
+        }
         throwError(2);
         return;
     }
@@ -93,8 +109,15 @@ void DataProcessor::changedParametersApply(QString imDir, QString logFile, QStri
 
 void DataProcessor::readAllImagesOnce(){
     QStringList FirstImages=  imageDir_.entryList(QStringList(), QDir::Files);
+    if(logFile_!=NULL){
+        localTime_=QDateTime::currentDateTime();
+        fprintf(logFile_,"  Read images: %s\n",localTime_.toString("yyyy-MM-dd hh:mm:ss").toStdString().c_str());
+    }
     for (int i=0; i<FirstImages.size(); ++i){
-           imagePathesQueue_.enqueue(FirstImages.at(i));
+        imagePathesQueue_.enqueue(FirstImages.at(i));
+        if(logFile_!=NULL){
+            fprintf(logFile_,"   %s\n",FirstImages.at(i).toStdString().c_str());
+        }
     }
 }
 
@@ -107,16 +130,24 @@ void DataProcessor::perform(int state){
             qDebug() << imagePathesQueue_.first();
             imagePathesQueue_.dequeue();
         }
+
         RadarProccessor_.run(img_files_to_pass);
         QCoreApplication::processEvents(QEventLoop::AllEvents); //NOT TESTED
     }
 }
 
 void DataProcessor::readImagesAndRun(const QModelIndex& parent, int start, int end){
-   for(int i=start; i<=end;++i ){
+    if(logFile_!=NULL){
+        localTime_=QDateTime::currentDateTime();
+        fprintf(logFile_,"  Read images: %s\n",localTime_.toString("yyyy-MM-dd hh:mm:ss").toStdString().c_str());
+    }
+    for(int i=start; i<=end;++i ){
         QModelIndex PathIndex=dirModel_->index(i,0,parent);
         QVariant PathName= PathIndex.data();
         imagePathesQueue_.enqueue(PathName.toString());
+        if(logFile_!=NULL){
+            fprintf(logFile_,"   %s\n",PathName.toString().toStdString().c_str());
+        }
     }
     perform(state_);
 }

@@ -25,6 +25,8 @@ private:
     QFileSystemModel * dirModel_;
 
     Radar RadarProccessor_;
+
+    QDateTime localTime_;
 public:
     explicit DataProcessor(const QSettings &, QObject * parent=nullptr);
     ~DataProcessor();
