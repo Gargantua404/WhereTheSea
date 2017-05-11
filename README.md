@@ -14,4 +14,4 @@ The only subdirectory storing in repository should be named "project/WhereTheSea
 
 One shoudn't put binary and other big-size files into the repository.
 
-
+#Building the project

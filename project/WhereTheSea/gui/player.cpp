@@ -311,6 +311,24 @@ void SettingsWindow::changeState(int state){
         but2->setDisabled(true);
         but3->setDisabled(true);
     }
+    else{
+        QPalette  palette;
+        palette.setColor(QPalette::Base,Qt::white);
+        palette.setColor(QPalette::Text,Qt::black);
+
+        imageDirLine_->setReadOnly(false);
+        imageDirLine_->setPalette(palette);
+
+        logFileLine_->setReadOnly(false);
+        logFileLine_->setPalette(palette);
+
+        outputFileLine_->setReadOnly(false);
+        outputFileLine_->setPalette(palette);
+
+        but1->setDisabled(false);
+        but2->setDisabled(false);
+        but3->setDisabled(false);
+    }
 }
 
 StatBar::StatBar(QWidget *parent):QLabel(parent),stateArr_({tr("Stopped") , tr("Paused"), tr("Working")}){
