@@ -1,6 +1,6 @@
 #include <vector>
 #include <list>
-#include "EasyBMP.h"
+#include "../libEasyBMP/EasyBMP.h"
 #include <cstdlib>
 #include <time.h>
 
