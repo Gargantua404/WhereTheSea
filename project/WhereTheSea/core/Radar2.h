@@ -1,6 +1,6 @@
 #include <vector>
 #include <list>
-#include "../libEasyBMP/EasyBMP.h"
+#include "EasyBMP.h"
 #include <cstdlib>
 #include <time.h>
 
@@ -9,7 +9,7 @@ bool operator == (const RGBApixel a, const RGBApixel b);
 class Radar
 {
 private:
-	int freq = 1, tick = 1;
+	int freq = 1;
 	int YYYY = 0, MM = 0, DD = 0, hh = 0, mm = 0, ss = 0;
 	int oYYYY, oMM, oDD, ohh, omm, oss;
 	double latitude, longitude, scale;

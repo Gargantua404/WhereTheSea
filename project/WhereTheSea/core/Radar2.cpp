@@ -180,8 +180,6 @@ void Radar::writeOutput()
 {
 	outputFile = fopen(outputFileName.c_str(), "a");
 	fprintf(outputFile, "%04d-%02d-%02d-%02d-%02d-%02d\n", YYYY, MM, DD, hh, mm, ss);
-	//fprintf(outputFile, "tick #%d\n", tick);
-	//tick++;
 	for (int i = 0; i < ox.size(); i++)
 	{
 		double xd = (ox[i] - ((double)world.TellWidth() / 2)); //ѕересчитываем в пол€рные координаты
