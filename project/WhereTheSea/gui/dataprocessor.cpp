@@ -1,6 +1,6 @@
 #include "dataprocessor.h"
 
-DataProcessor::DataProcessor(const QSettings & settings, QObject * parent):QObject(parent),logFile_(NULL),RadarProccessor_(),localTime_(QDateTime::currentDateTime()){
+DataProcessor::DataProcessor(const QSettings & settings, QObject * parent):QObject(parent),logFile_(NULL),RadarProccessor_(10),localTime_(QDateTime::currentDateTime()){
     imageDirStr_= settings.value("/Settings/ImageDir","").toString();
     logFileStr_=settings.value("/Settings/LogFile","").toString();
     outputFileStr_=settings.value("/Settings/OutputFile","").toString();
@@ -21,7 +21,7 @@ DataProcessor::DataProcessor(const QSettings & settings, QObject * parent):QObje
     dirModel_->setNameFilters(QStringList()<<"*.bmp");
     dirModel_->setNameFilterDisables(false);
 
-    RadarProccessor_.setLogFile(logFile_);
+    RadarProccessor_.setLogFile(logFileStr_.toStdString());
     RadarProccessor_.setOutputFile(outputFileStr_.toStdString());
     RadarProccessor_.setFreq(frequency_);
 
@@ -99,7 +99,7 @@ void DataProcessor::changedParametersApply(QString imDir, QString logFile, QStri
         }
         logFileStr_=logFile;
         logFile_=fopen(logFileStr_.toStdString().c_str(),"w");
-        RadarProccessor_.setLogFile(logFile_);
+        RadarProccessor_.setLogFile(logFileStr_.toStdString());
         if(logFile_!=NULL){
             localTime_=QDateTime::currentDateTime();
             fprintf(logFile_,"Log file <%s> creation: %s\n"
