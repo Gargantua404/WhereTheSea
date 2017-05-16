@@ -38,6 +38,8 @@ public:
 	void clearCashe();
 	void setOutputFile(const string newOutputFileName);
 	void setLogFile(const string newLogFileName);
+    void setLogFile(FILE * newLogFile);
+    void setScale(int newScale);
 	int run(const list<string> inputFileNames, bool createOutputImage, const string outputImageFileName);
 	int run(const list<string> inputFileNames);
 	BMP getImage();

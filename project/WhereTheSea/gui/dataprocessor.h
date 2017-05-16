@@ -19,7 +19,9 @@ private:
     FILE * logFile_;
 
     int state_; //0-stopped, 1-paused, 2-working
-    int frequency_; //minimal number of files to process
+    int logFileBox_;
+    int minFile_; //minimal number of files to process
+    int scale_;
 
     QQueue<QString> imagePathesQueue_;
     QFileSystemModel * dirModel_;
@@ -27,6 +29,8 @@ private:
     Radar RadarProccessor_;
 
     QDateTime localTime_;
+
+    void writeToLogBegin(FILE *,QString logFileStr,QDateTime localTime,QString imageDirStr, QString outputFileStr, int minFile, int scale);
 public:
     explicit DataProcessor(const QSettings &, QObject * parent=nullptr);
     ~DataProcessor();
@@ -42,7 +46,7 @@ signals:
 public slots:
     //GUI slots
     void changeButtonApply(int); //apply signals from buttons
-    void changedParametersApply(QString,QString,QString,int); //apply changes from setting window
+    void changedParametersApply(QString,int,QString,int,int); //apply changes from setting window
 
     //algorithm slots
     void readImagesAndRun(const QModelIndex &, int, int);

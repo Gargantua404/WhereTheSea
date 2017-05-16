@@ -1,19 +1,21 @@
 #include "dataprocessor.h"
 
-DataProcessor::DataProcessor(const QSettings & settings, QObject * parent):QObject(parent),logFile_(NULL),RadarProccessor_(10),localTime_(QDateTime::currentDateTime()){
+DataProcessor::DataProcessor(const QSettings & settings, QObject * parent):QObject(parent),logFile_(NULL),
+    scale_(settings.value("/Settings/Scale","").toInt()),
+    RadarProccessor_(scale_), localTime_(QDateTime::currentDateTime()){
+
     imageDirStr_= settings.value("/Settings/ImageDir","").toString();
-    logFileStr_=settings.value("/Settings/LogFile","").toString();
     outputFileStr_=settings.value("/Settings/OutputFile","").toString();
     imageDir_.setCurrent(imageDirStr_);
-    frequency_=settings.value("/Settings/Frequency",15).toInt();
-    logFile_=fopen(logFileStr_.toStdString().c_str(),"w");
+    minFile_=settings.value("/Settings/MinFile",15).toInt();
 
-    if(logFile_!=NULL){
-        fprintf(logFile_,"Log file <%s> creation: %s\n"
-                    "Directory with images: %s\n"
-                    "Output file with objects' motion data: %s\n"
-                    "Minimal anount of files to perform: %i\n\n",                logFileStr_.toStdString().c_str(),localTime_.toString("yyyy-MM-dd hh:mm:ss").toStdString().c_str(), imageDirStr_.toStdString().c_str(), outputFileStr_.toStdString().c_str(), frequency_);
-    }
+    logFileBox_=settings.value("/Settings/LogFile",0).toInt();
+    if(logFileBox_==2){
+        logFileStr_=QCoreApplication::applicationDirPath()+"/WhereTheSea_"+ localTime_.toString("yyyyMMdd_hhmmss")+ ".log";
+        logFile_=fopen(logFileStr_.toStdString().c_str(),"w");
+        RadarProccessor_.setLogFile(logFile_);
+     }
+    writeToLogBegin(logFile_, logFileStr_,localTime_,imageDirStr_,outputFileStr_,minFile_,scale_);
 
     dirModel_=new QFileSystemModel;
     dirModel_->setRootPath(imageDirStr_);
@@ -21,9 +23,9 @@ DataProcessor::DataProcessor(const QSettings & settings, QObject * parent):QObje
     dirModel_->setNameFilters(QStringList()<<"*.bmp");
     dirModel_->setNameFilterDisables(false);
 
-    RadarProccessor_.setLogFile(logFileStr_.toStdString());
     RadarProccessor_.setOutputFile(outputFileStr_.toStdString());
-    RadarProccessor_.setFreq(frequency_);
+    RadarProccessor_.setFreq(minFile_);
+    RadarProccessor_.setScale(scale_);
 
     state_=0;
 }
@@ -31,6 +33,17 @@ DataProcessor::DataProcessor(const QSettings & settings, QObject * parent):QObje
 DataProcessor::~DataProcessor(){
     if(logFile_!=NULL){
         fclose(logFile_);
+    }
+}
+
+void DataProcessor::writeToLogBegin(FILE * logFile, QString logFileStr, QDateTime localTime, QString imageDirStr, QString outputFileStr, int minFile, int scale){
+    if(logFile!=NULL){
+        fprintf(logFile,"Log file <%s> creation: %s\n"
+                    "Directory with images: %s\n"
+                    "Output file with objects' motion data: %s\n"
+                    "Minimal amount of files to perform: %i\n"
+                    "Scale factor: %i\n\n",
+logFileStr.toStdString().c_str(),localTime.toString("yyyy-MM-dd hh:mm:ss").toStdString().c_str(), imageDirStr.toStdString().c_str(), outputFileStr.toStdString().c_str(), minFile,scale);
     }
 }
 
@@ -43,16 +56,11 @@ void DataProcessor::changeButtonApply(int state){
         throwError(0);
         return;
     }
-    else if(!QFile(logFileStr_).exists(logFileStr_)){
-        throwError(1);
-        return;
-
-    }
     else if(!QFile(outputFileStr_).exists(outputFileStr_)){
         if(logFile_!=NULL){
             fprintf(logFile_,"Incorrect path to the output file with objects' motion data with images\n");
         }
-        throwError(2);
+        throwError(1);
         return;
     }
 
@@ -83,7 +91,7 @@ void DataProcessor::changeButtonApply(int state){
     }
 }
 
-void DataProcessor::changedParametersApply(QString imDir, QString logFile, QString outFile, int freq) {
+void DataProcessor::changedParametersApply(QString imDir,int logFileBox, QString outFile, int freq, int scale) {
     if(imageDirStr_!=imDir){
         imageDirStr_=imDir;
         imageDir_.setCurrent(imageDirStr_);
@@ -92,22 +100,7 @@ void DataProcessor::changedParametersApply(QString imDir, QString logFile, QStri
             fprintf(logFile_,"Path to the directory with images was changed to %s\n",imageDirStr_.toStdString().c_str());
         }
     }
-    if (logFileStr_!=logFile){
-        if(logFile_!=NULL){
-             fprintf(logFile_,"Path to the log file was changed to <%s> \n",logFileStr_.toStdString().c_str());
-            fclose(logFile_);
-        }
-        logFileStr_=logFile;
-        logFile_=fopen(logFileStr_.toStdString().c_str(),"w");
-        RadarProccessor_.setLogFile(logFileStr_.toStdString());
-        if(logFile_!=NULL){
-            localTime_=QDateTime::currentDateTime();
-            fprintf(logFile_,"Log file <%s> creation: %s\n"
-                        "Directory with images: %s\n"
-                        "Output file with objects' motion data: %s\n"
-                        "Minimal anount of files to perform: %i\n\n",                logFileStr_.toStdString().c_str(),localTime_.toString("yyyy-MM-dd hh:mm:ss").toStdString().c_str(), imageDirStr_.toStdString().c_str(), outputFileStr_.toStdString().c_str(), frequency_);
-        }
-    }
+
     if (outputFileStr_!=outFile){
         outputFileStr_=outFile;
         RadarProccessor_.setOutputFile(outputFileStr_.toStdString());
@@ -115,13 +108,42 @@ void DataProcessor::changedParametersApply(QString imDir, QString logFile, QStri
              fprintf(logFile_,"Path to the output file was changed to <%s> \n",outputFileStr_.toStdString().c_str());
         }
     }
-    if (frequency_!=freq){
-        frequency_=freq;
-        RadarProccessor_.setFreq(frequency_);
-        if(logFile_!=NULL){
-             fprintf(logFile_,"New minimal anount of files to perform: %i\n",frequency_);
+
+    if (logFileBox_!=logFileBox){
+        if(logFileBox==2){
+            //box is checked
+            localTime_=QDateTime::currentDateTime();
+            logFileStr_=QCoreApplication::applicationDirPath()+"/WhereTheSea_"+ localTime_.toString("yyyyMMdd_hhmmss")+ ".log";
+            logFile_=fopen(logFileStr_.toStdString().c_str(),"w");
+            RadarProccessor_.setLogFile(logFile_);
+            writeToLogBegin(logFile_, logFileStr_,localTime_,imageDirStr_,outputFileStr_,minFile_,scale_);
         }
-    };
+        else{
+             if(logFile_!=NULL){
+                 localTime_=QDateTime::currentDateTime();
+                 fprintf(logFile_,"Log file keeping was disabled: %s\n",  localTime_.toString("yyyy-MM-dd hh:mm:ss").toStdString().c_str());
+                 fclose(logFile_);
+                 logFile_=NULL;
+             }
+        }
+        logFileBox_=logFileBox;
+    }
+
+    if (minFile_!=freq){
+        minFile_=freq;
+        RadarProccessor_.setFreq(minFile_);
+        if(logFile_!=NULL){
+             fprintf(logFile_,"New minimal anount of files to perform: %i\n",minFile_);
+        }
+    }
+
+    if (scale_!=scale){
+        scale_=scale;
+        RadarProccessor_.setScale(scale_);
+        if(logFile_!=NULL){
+             fprintf(logFile_,"New scale : %i\n",scale_);
+        }
+    }
 }
 
 void DataProcessor::readAllImagesOnce(){
@@ -139,10 +161,10 @@ void DataProcessor::readAllImagesOnce(){
 }
 
 void DataProcessor::perform(int state){
-    while(state!=1 && imagePathesQueue_.size()>=frequency_){
+    while(state!=1 && imagePathesQueue_.size()>=minFile_){
         //MUFFLE
         list<string> img_files_to_pass;
-        for(int j=0;j<frequency_;++j){
+        for(int j=0;j<minFile_;++j){
             img_files_to_pass.push_back(imagePathesQueue_.first().toStdString());
             qDebug() << imagePathesQueue_.first();
             imagePathesQueue_.dequeue();

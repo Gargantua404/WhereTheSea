@@ -215,6 +215,12 @@ Radar::~Radar()
 void Radar::setFreq(int newFreq)
 {
 }
+
+void Radar::setScale(int newScale)
+{
+    scale=newScale;
+}
+
 //Забываем объекты с прошлых изображений
 void Radar::clearCashe()
 {
@@ -226,8 +232,8 @@ void Radar::clearCashe()
 //Определяем файл вывода
 void Radar::setOutputFile(const string newOutputFileName)
 {
-	if (logFile != NULL)
-		fprintf(logFile, "Set new output file %s\n", newOutputFileName.c_str());
+    if (logFile != NULL)
+        fprintf(logFile, "Set new output file %s\n", newOutputFileName.c_str());
 	if (outputFile != NULL)
 		fclose(outputFile);
 	outputFileName = newOutputFileName;
@@ -244,6 +250,12 @@ void Radar::setLogFile(const string newLogFileName)
 	logFile = fopen(logFileName.c_str(), "a");
 	fprintf(logFile, "This is new log file\n");
 }
+void Radar::setLogFile(FILE *newLogFile)
+{
+    logFileName="";
+    logFile =newLogFile;
+}
+
 //Принимаем название файла с изображения (сейчас всегда одного) и нужно ли выходное изображение и имя файла для него
 //Возвращаем ноль, если всё хорошо, сейчас определяет только одну ошибку, но может быть потом будет больше
 int Radar::run(const list<string> inputFileNames, bool createOutputImage, const string outputImageFileName)

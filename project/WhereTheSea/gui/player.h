@@ -19,7 +19,7 @@ class Player: public QMainWindow  {
     Q_OBJECT
 private:
     SettingsMenu * settingsMenu_;
-    QMenu * helpMenu_;
+    //QMenu * helpMenu_;
 
     QAction * toSettings_;
     SettingsWindow * setWin_;
@@ -47,32 +47,34 @@ class SettingsWindow: public QDialog{
     Q_OBJECT
 private:
     QString imageDir_;
-    QString logFile_;
+    //QString logFile_;
+    int logFile_; // 0 -unchecked ,2 -checked
     QString outputFile_;
-    int frequency_;
+    int minFile_;
+    int scale_;
+
 
     QLineEdit * imageDirLine_;
-    QLineEdit * logFileLine_;
+    //QLineEdit * logFileLine_;
+    QCheckBox * logFileBox_;
     QLineEdit * outputFileLine_;
-    QSpinBox * freqBox_;
+    QSpinBox * minFileBox_;
     QPushButton * but1;
     QPushButton * but2;
-    QPushButton * but3;
+    QSpinBox * scaleBox_;
 
     QSettings * storedSet_;
     friend class ::Player;
 public:
-    //SettingsWindow (QString imDir,QString logFile,QString outputFile, int frequency, QWidget * parent = nullptr);
     SettingsWindow(QSettings * storedSet, QWidget * parent =nullptr);
 
     void checkInput();
 signals:
-    void sendSettingsToProcessor(QString imDir, QString logFile, QString outputFile, int frequency);
+    void sendSettingsToProcessor(QString imDir, int logFile, QString outputFile, int minFile,int scale);
 public slots:
     void openSettingsWindow(); // open settings window on pressing the button in menus
 
     void setLabelImageDirFromBrowse();
-    void setLabelLogFileFromBrowse();
     void setLabelOutputFileFromBrowse();
 
     void applySetings();
@@ -94,7 +96,6 @@ public slots:
 class PausePlayButton: public QPushButton{
     Q_OBJECT
 private:
-    //const QVector<QString> IconsPath;
     QVector<QString> IconsPath_;
     QVector<QPixmap *> ButtonPicture_;
     QVector<QIcon *> ButtonIcon_;
@@ -143,17 +144,5 @@ public:
         exec();
     }
 };
-
-/*class DirValidator: public QValidator{
-public:
-    DirValidator(QObject * parent = nullptr): QValidator(parent){
-
-    }
-
-};
-
-class FileValifdator: public QValidator{
-
-};*/
 
 #endif // PLAYER_H

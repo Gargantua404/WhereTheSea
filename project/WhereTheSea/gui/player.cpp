@@ -12,11 +12,11 @@ Player::Player (QWidget *parent):QMainWindow(parent){
     ImThread_->start();
 
     //menu
-    settingsMenu_ = new SettingsMenu(tr("&Settings"),this);
-    helpMenu_ = new QMenu (tr("&Help"),this);
+    settingsMenu_ = new SettingsMenu(tr("&Operations"),this);
+    //helpMenu_ = new QMenu (tr("&Help"),this);
 
     // actions
-    toSettings_ = new QAction(tr("Common settings"),settingsMenu_);
+    toSettings_ = new QAction(tr("Settings"),settingsMenu_);
     settingsMenu_->addAction(toSettings_);
     //settings window
     setWin_ = new SettingsWindow(storedSet_,settingsMenu_);
@@ -41,7 +41,6 @@ Player::Player (QWidget *parent):QMainWindow(parent){
 
     //assembling
     menuBar()->addMenu(settingsMenu_);
-    menuBar()->addMenu(helpMenu_);
     setCentralWidget(widgetForLayout_);
     statusBar()->addWidget(stBar_);
 
@@ -63,7 +62,7 @@ Player::Player (QWidget *parent):QMainWindow(parent){
     connect (processor_,SIGNAL(changeStateView(int)),buttonOnPause_,SLOT(switchView(int)));
 
     //send new changed parameters to processor
-    connect(setWin_,SIGNAL(sendSettingsToProcessor(QString,QString,QString,int)),processor_,SLOT(changedParametersApply(QString,QString,QString,int)));
+    connect(setWin_,SIGNAL(sendSettingsToProcessor(QString,int,QString,int,int)),processor_,SLOT(changedParametersApply(QString,int,QString,int,int)));
 
     connect(processor_,SIGNAL(throwError(int)),this,SLOT(showMessage(int)));
 
@@ -75,9 +74,6 @@ void Player::showMessage(int type){
         QMessageBox::critical(this,tr("Attention"),tr("Incorrect path to the directory with images"), QMessageBox::Ok);
         break;
     case 1:
-        QMessageBox::critical(this,tr("Attention"),tr("Incorrect path to the log-file"),QMessageBox::Ok);
-        break;
-    case 2:
         QMessageBox::critical(this,tr("Attention"),tr("Incorrect path to the output file"),QMessageBox::Ok);
         break;
     }
@@ -100,7 +96,6 @@ SettingsWindow::SettingsWindow(QSettings * storedSet, QWidget * parent):storedSe
     int spacingvertical=5;
     int spacinghorizontal =3;
 
-
     // Pathes area
     QGroupBox * gPathes = new QGroupBox(tr("Pathes"),this);
     gPathes->setGeometry(5,10,500,100);
@@ -109,6 +104,7 @@ SettingsWindow::SettingsWindow(QSettings * storedSet, QWidget * parent):storedSe
     pathesLayout->setMargin(marginvertical);
     pathesLayout->setSpacing(spacingvertical);
 
+    //image directory path layout
     QBoxLayout * ImageDirLayout = new QBoxLayout (QBoxLayout::LeftToRight);
     ImageDirLayout->setMargin(marginvertical);
     ImageDirLayout->setSpacing(spacinghorizontal);
@@ -126,70 +122,94 @@ SettingsWindow::SettingsWindow(QSettings * storedSet, QWidget * parent):storedSe
 
     ImageDirLayout->addWidget(but1);
 
-    QBoxLayout * LogFileLayout = new QBoxLayout(QBoxLayout::LeftToRight);
-    LogFileLayout->setMargin(marginvertical);
-    LogFileLayout->setSpacing(spacinghorizontal);
-
-    QLabel * label2= new QLabel(tr("Log file:"));
-    logFileLine_ = new QLineEdit;
-    logFile_ = storedSet_->value("/Settings/LogFile","").toString();
-    logFileLine_->setText(logFile_);
-    but2= new QPushButton(tr("Browse"));
-    connect(but2,SIGNAL(clicked(bool)),this,SLOT(setLabelLogFileFromBrowse()));
-
-    LogFileLayout->addSpacing(68);
-    LogFileLayout->addWidget(label2);
-    LogFileLayout->addWidget(logFileLine_);
-    LogFileLayout->addWidget(but2);
-
+    //outputfile layout
     QBoxLayout * OutputFileLayout = new QBoxLayout(QBoxLayout::LeftToRight);
     OutputFileLayout->setMargin(marginvertical);
     OutputFileLayout->setSpacing(spacinghorizontal);
 
-    QLabel * label3= new QLabel(tr("Output file:"));
+    QLabel * label2= new QLabel(tr("Output file:"));
     outputFileLine_ = new QLineEdit;
     outputFile_ = storedSet_->value("/Settings/OutputFile","").toString();
     outputFileLine_->setText(outputFile_);
-    but3= new QPushButton(tr("Browse"));
-    connect(but3,SIGNAL(clicked(bool)),this,SLOT(setLabelOutputFileFromBrowse()));
+    but2= new QPushButton(tr("Browse"));
+    connect(but2,SIGNAL(clicked(bool)),this,SLOT(setLabelOutputFileFromBrowse()));
 
     OutputFileLayout->addSpacing(51);
-    OutputFileLayout->addWidget(label3);
+    OutputFileLayout->addWidget(label2);
     OutputFileLayout->addWidget(outputFileLine_);
-    OutputFileLayout->addWidget(but3);
+    OutputFileLayout->addWidget(but2);
 
     //assembling pathes area
     pathesLayout->addLayout(ImageDirLayout);
-    pathesLayout->addLayout(LogFileLayout);
     pathesLayout->addLayout(OutputFileLayout);
 
     gPathes->setLayout(pathesLayout);
 
     //Common area
     QGroupBox * gCommon = new QGroupBox(tr("Common"),this);
-    gCommon->setGeometry(5,120,500,50);
+    gCommon->setGeometry(5,120,500,100);
 
     QVBoxLayout * commonLayout= new QVBoxLayout(this);
     commonLayout->setMargin(marginvertical);
     commonLayout->setSpacing(spacingvertical);
 
-    QBoxLayout * FrequencyLayout = new QBoxLayout (QBoxLayout::LeftToRight);
-    FrequencyLayout->setMargin(marginvertical);
-    FrequencyLayout->setSpacing(spacinghorizontal);
+    //logfile path layout
+    QBoxLayout * LogFileBoxLayout = new QBoxLayout(QBoxLayout::LeftToRight);
+    LogFileBoxLayout->setMargin(marginvertical);
+    LogFileBoxLayout->setSpacing(spacinghorizontal);
 
-    QLabel * flabel= new QLabel(tr("Minimal amount of files to process:"));
-    freqBox_ = new QSpinBox;
-    frequency_=storedSet_->value("/Settings/Frequency",15).toInt();
-    freqBox_->setValue(frequency_);
-    freqBox_->setFixedWidth(50);
-    freqBox_->setRange(1,100);
+    QLabel * clabel1= new QLabel(tr("Keep a log file:"));
+    logFile_ = storedSet_->value("/Settings/LogFile","").toBool();
+    logFileBox_= new QCheckBox;
+    if (logFile_){
+        logFileBox_->setCheckState(Qt::Checked);
+    }
+    else{
+        logFileBox_->setCheckState(Qt::Unchecked);
+    }
+    LogFileBoxLayout->addSpacing(124);
+    LogFileBoxLayout->addWidget(clabel1);
+    LogFileBoxLayout->addWidget(logFileBox_);
+    LogFileBoxLayout->addStretch(1);
 
-    FrequencyLayout->addSpacing(30);
-    FrequencyLayout->addWidget(flabel);
-    FrequencyLayout->addWidget(freqBox_);
-    FrequencyLayout->addStretch(1);
+    //minFile layout
+    QBoxLayout * minFileLayout = new QBoxLayout (QBoxLayout::LeftToRight);
+    minFileLayout->setMargin(marginvertical);
+    minFileLayout->setSpacing(spacinghorizontal);
 
-    commonLayout->addLayout(FrequencyLayout);
+    QLabel * clabel2= new QLabel(tr("Minimal amount of files to process:"));
+    minFileBox_ = new QSpinBox;
+    minFile_=storedSet_->value("/Settings/MinFile",1).toInt();
+    minFileBox_->setValue(minFile_);
+    minFileBox_->setFixedWidth(60);
+    minFileBox_->setRange(1,100);
+
+    minFileLayout->addSpacing(30);
+    minFileLayout->addWidget(clabel2);
+    minFileLayout->addWidget(minFileBox_);
+    minFileLayout->addStretch(1);
+
+    //scale factor layout
+    QBoxLayout * scaleLayout = new QBoxLayout (QBoxLayout::LeftToRight);
+    scaleLayout ->setMargin(marginvertical);
+    scaleLayout ->setSpacing(spacinghorizontal);
+
+    QLabel * clabel3= new QLabel(tr("Scale:"));
+    scaleBox_ = new QSpinBox;
+    scale_=storedSet_->value("/Settings/Scale",100).toInt();
+    scaleBox_->setValue(scale_);
+    scaleBox_->setFixedWidth(60);
+    scaleBox_->setRange(1,10000);
+
+    scaleLayout->addSpacing(164);
+    scaleLayout->addWidget(clabel3);
+    scaleLayout->addWidget(scaleBox_);
+    scaleLayout->addStretch(1);
+
+    //assembling pathes area
+    commonLayout->addLayout(LogFileBoxLayout);
+    commonLayout->addLayout(minFileLayout);
+    commonLayout->addLayout(scaleLayout);
 
     gCommon->setLayout(commonLayout);
 
@@ -216,23 +236,16 @@ SettingsWindow::SettingsWindow(QSettings * storedSet, QWidget * parent):storedSe
     connect(bcancel, SIGNAL(clicked(bool)),this,SLOT(cancelSettings()));
 
     //send initial parameters value to processor
-    emit sendSettingsToProcessor(imageDir_,logFile_,outputFile_,frequency_);
+    emit sendSettingsToProcessor(imageDir_,logFile_,outputFile_,minFile_,scale_);
 }
 
 void SettingsWindow::openSettingsWindow(){
-    //BLOCK PARENT
     this->show();
 }
 
 void SettingsWindow::setLabelImageDirFromBrowse(){
     QString str = QFileDialog::getExistingDirectory(0,"Choose the directory to image files","");
     imageDirLine_->setText(str);
-}
-
-
-void SettingsWindow::setLabelLogFileFromBrowse(){
-    QString str = QFileDialog::getOpenFileName(0,"Choose the path to the log file","","*.txt");
-    logFileLine_->setText(str);
 }
 
 void SettingsWindow::setLabelOutputFileFromBrowse(){
@@ -254,19 +267,6 @@ void SettingsWindow::applySetings(){
         storedSet_->setValue("/Settings/ImageDir",imageDir_);
     }
 
-    QString logFileTemp= logFileLine_->text();
-
-    //check file specification
-
-    if(!QFile(logFileTemp).exists()){
-        QMessageBox::critical(this,tr("Attention"),tr("Incorrect path to the log-file"),QMessageBox::Ok);
-        allisok=false;
-    }
-    else{
-        logFile_=logFileTemp;
-        storedSet_->setValue("/Settings/LogFile",logFile_);
-    }
-
     QString  outputFileTemp = outputFileLine_->text();
     if(!QFile(outputFileTemp).exists()){
         QMessageBox::critical(this,tr("Attention"),tr("Incorrect path to the output file"),QMessageBox::Ok);
@@ -277,17 +277,22 @@ void SettingsWindow::applySetings(){
         storedSet_->setValue("/Settings/OutputFile",outputFile_);
     }
 
-    frequency_=freqBox_->value();
-    storedSet_->setValue("Settings/Frequency",frequency_);
+    logFile_=logFileBox_->checkState();
+    storedSet_->setValue("/Settings/LogFile",logFile_);
+
+    minFile_=minFileBox_->value();
+    storedSet_->setValue("Settings/MinFile",minFile_);
+
+    scale_=scaleBox_->value();
+    storedSet_->setValue("Settings/Scale",scale_);
 
     if(allisok){
-        emit sendSettingsToProcessor(imageDir_,logFile_,outputFile_,frequency_);
+        emit sendSettingsToProcessor(imageDir_,logFile_,outputFile_,minFile_,scale_);
         this->hide();
     }
 }
 
 void SettingsWindow::cancelSettings(){
-    //Are QLineEdit being deleted themself?
     this->hide();
 }
 
@@ -301,15 +306,11 @@ void SettingsWindow::changeState(int state){
         imageDirLine_->setReadOnly(true);
         imageDirLine_->setPalette(palette);
 
-        logFileLine_->setReadOnly(true);
-        logFileLine_->setPalette(palette);
-
         outputFileLine_->setReadOnly(true);
         outputFileLine_->setPalette(palette);
 
         but1->setDisabled(true);
         but2->setDisabled(true);
-        but3->setDisabled(true);
     }
     else{
         QPalette  palette;
@@ -319,15 +320,11 @@ void SettingsWindow::changeState(int state){
         imageDirLine_->setReadOnly(false);
         imageDirLine_->setPalette(palette);
 
-        logFileLine_->setReadOnly(false);
-        logFileLine_->setPalette(palette);
-
         outputFileLine_->setReadOnly(false);
         outputFileLine_->setPalette(palette);
 
-        but1->setDisabled(false);
+        but1->setDisabled(false);        
         but2->setDisabled(false);
-        but3->setDisabled(false);
     }
 }
 
@@ -349,10 +346,6 @@ PausePlayButton::PausePlayButton(QWidget *parent):QPushButton(parent),state_(0),
         if(QFileInfo(IconsPath_[i]).exists()){
             ButtonPicture_.push_back(new QPixmap(IconsPath_[i]));
             ButtonIcon_.push_back(new QIcon(*ButtonPicture_[i]));
-        }
-        else{
-            qDebug()<<"no file";
-            //return error
         }
     }
     this->setIcon(*ButtonIcon_[0]);
