@@ -45,13 +45,15 @@ public slots:
 class SettingsWindow: public QDialog{
     Q_OBJECT
 private:
+    QSettings * storedSet_;
+    bool useminFileParam_;
+
     QString imageDir_;
     int logFile_; // 0 -unchecked ,2 -checked
     QString outputFile_;
     int minFile_;
     int scale_;
     double identThreshold_;
-    bool useminFileParam_;
 
     QLineEdit * imageDirLine_;    
     QCheckBox * logFileBox_;
@@ -62,7 +64,6 @@ private:
     QSpinBox * scaleBox_;
     QDoubleSpinBox * identThresholdBox_;
 
-    QSettings * storedSet_;
     friend class ::Player;
 public:
     SettingsWindow(QSettings * storedSet, QWidget * parent =nullptr);
@@ -104,11 +105,11 @@ public slots:
 class PausePlayButton: public QPushButton{
     Q_OBJECT
 private:
+    int state_; //0 - pause, 1- on
+
     QVector<QString> IconsPath_;
     QVector<QPixmap *> ButtonPicture_;
     QVector<QIcon *> ButtonIcon_;
-
-    int state_; //0 - pause, 1- on
 public:
     PausePlayButton(QWidget * parent = nullptr);
 
