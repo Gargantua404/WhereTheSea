@@ -1,5 +1,5 @@
 #define _CRT_SECURE_NO_WARNINGS
-#include "Radar2.h"
+#include "Radar.h"
 //Равенство цветов пикселей, почему-то этого нет в библиотеке
 bool operator == (const RGBApixel a, const RGBApixel b) {
 	return a.Red == b.Red && a.Green == b.Green && a.Blue == b.Blue && a.Alpha == b.Alpha;
@@ -219,6 +219,10 @@ void Radar::setFreq(int newFreq)
 void Radar::setScale(int newScale)
 {
     scale=newScale;
+}
+
+void Radar::setIdentThreshold(double newThreshold){
+    //MUFFLE
 }
 
 //Забываем объекты с прошлых изображений

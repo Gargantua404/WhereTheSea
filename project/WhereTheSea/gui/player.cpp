@@ -57,12 +57,13 @@ Player::Player (QWidget *parent):QMainWindow(parent){
 
     //changes gui view
     connect (processor_,SIGNAL(changeStateView(int)), stBar_,SLOT(changeState(int)));
+    connect (processor_,SIGNAL(changeCounterView(int)),stBar_,SLOT(changeCounter(int)));
     connect (processor_,SIGNAL(changeStateView(int)),settingsMenu_,SLOT(changeState(int)));
     connect (processor_,SIGNAL(changeStateView(int)),setWin_,SLOT(changeState(int)));
     connect (processor_,SIGNAL(changeStateView(int)),buttonOnPause_,SLOT(switchView(int)));
 
     //send new changed parameters to processor
-    connect(setWin_,SIGNAL(sendSettingsToProcessor(QString,int,QString,int,int)),processor_,SLOT(changedParametersApply(QString,int,QString,int,int)));
+    connect(setWin_,SIGNAL(sendSettingsToProcessor(QString,int,QString,int,int,double)),processor_,SLOT(changedParametersApply(QString,int,QString,int,int,double)));
 
     connect(processor_,SIGNAL(throwError(int)),this,SLOT(showMessage(int)));
 
@@ -85,7 +86,7 @@ Player::~Player(){
     ImThread_->wait();
 }
 
-SettingsWindow::SettingsWindow(QSettings * storedSet, QWidget * parent):storedSet_(storedSet),QDialog(parent){
+SettingsWindow::SettingsWindow(QSettings * storedSet, QWidget * parent):storedSet_(storedSet),useminFileParam_(false),QDialog(parent){
     this->setWindowTitle(tr("Settings"));
     this->setModal(true);
     this->setWindowFlags(Qt::Window);
@@ -167,12 +168,19 @@ SettingsWindow::SettingsWindow(QSettings * storedSet, QWidget * parent):storedSe
     else{
         logFileBox_->setCheckState(Qt::Unchecked);
     }
-    LogFileBoxLayout->addSpacing(124);
+    if(useminFileParam_){
+      LogFileBoxLayout->addSpacing(124);
+    }
+    else{
+        LogFileBoxLayout->addSpacing(30);
+    }
+
     LogFileBoxLayout->addWidget(clabel1);
     LogFileBoxLayout->addWidget(logFileBox_);
     LogFileBoxLayout->addStretch(1);
 
     //minFile layout
+
     QBoxLayout * minFileLayout = new QBoxLayout (QBoxLayout::LeftToRight);
     minFileLayout->setMargin(marginvertical);
     minFileLayout->setSpacing(spacinghorizontal);
@@ -201,15 +209,47 @@ SettingsWindow::SettingsWindow(QSettings * storedSet, QWidget * parent):storedSe
     scaleBox_->setFixedWidth(60);
     scaleBox_->setRange(1,10000);
 
-    scaleLayout->addSpacing(164);
+    if(useminFileParam_){
+      scaleLayout->addSpacing(164);
+    }
+    else{
+       scaleLayout->addSpacing(30);
+    }
     scaleLayout->addWidget(clabel3);
     scaleLayout->addWidget(scaleBox_);
     scaleLayout->addStretch(1);
 
+    //Identification threshold parameter
+    QBoxLayout * identThresholdLayout= new QBoxLayout (QBoxLayout::LeftToRight);
+    scaleLayout ->setMargin(marginvertical);
+    scaleLayout ->setSpacing(spacinghorizontal);
+
+    QLabel * clabel4= new QLabel(tr("Identification threshold:"));
+    identThresholdBox_ = new QDoubleSpinBox;
+    identThreshold_=storedSet_->value("/Settings/IdentThreshold",0.05).toDouble();
+    identThresholdBox_->setValue(identThreshold_);
+    identThresholdBox_->setFixedWidth(60);
+    identThresholdBox_->setSingleStep(0.01);
+    identThresholdBox_->setRange(0,1);
+
+    if(useminFileParam_){
+      scaleLayout->addSpacing(164);
+    }
+    else{
+       scaleLayout->addSpacing(30);
+    }
+    scaleLayout->addWidget(clabel4);
+    scaleLayout->addWidget(identThresholdBox_);
+    scaleLayout->addStretch(1);
+
+
     //assembling pathes area
     commonLayout->addLayout(LogFileBoxLayout);
-    commonLayout->addLayout(minFileLayout);
+    if(useminFileParam_){
+        commonLayout->addLayout(minFileLayout);
+    }
     commonLayout->addLayout(scaleLayout);
+    commonLayout->addLayout(identThresholdLayout);
 
     gCommon->setLayout(commonLayout);
 
@@ -236,7 +276,7 @@ SettingsWindow::SettingsWindow(QSettings * storedSet, QWidget * parent):storedSe
     connect(bcancel, SIGNAL(clicked(bool)),this,SLOT(cancelSettings()));
 
     //send initial parameters value to processor
-    emit sendSettingsToProcessor(imageDir_,logFile_,outputFile_,minFile_,scale_);
+    emit sendSettingsToProcessor(imageDir_,logFile_,outputFile_,minFile_,scale_,identThreshold_);
 }
 
 void SettingsWindow::openSettingsWindow(){
@@ -286,8 +326,11 @@ void SettingsWindow::applySetings(){
     scale_=scaleBox_->value();
     storedSet_->setValue("Settings/Scale",scale_);
 
+    identThreshold_=identThresholdBox_->value();
+    storedSet_->setValue("Settings/IdentThreshold",identThreshold_);
+
     if(allisok){
-        emit sendSettingsToProcessor(imageDir_,logFile_,outputFile_,minFile_,scale_);
+        emit sendSettingsToProcessor(imageDir_,logFile_,outputFile_,minFile_,scale_,identThreshold_);
         this->hide();
     }
 }
@@ -329,14 +372,21 @@ void SettingsWindow::changeState(int state){
 }
 
 StatBar::StatBar(QWidget *parent):QLabel(parent),stateArr_({tr("Stopped") , tr("Paused"), tr("Working")}){
-    this->setText(stateArr_.at(0)); //initialize by "stopped" value
+    state_=0;
+    filesInQueue_=0;
+    this->setText(stateArr_.at(state_)+strFilesCounts(filesInQueue_)); //initialize by "stopped" value
 }
 
 void StatBar::changeState(int s){
-    this->setText(stateArr_.at(s));
+    state_=s;
+    this->setText(stateArr_.at(state_)+ strFilesCounts(filesInQueue_));
     this->repaint();
 }
 
+void StatBar::changeCounter(int s){
+    filesInQueue_=s;
+    changeState(state_);
+}
 
 PausePlayButton::PausePlayButton(QWidget *parent):QPushButton(parent),state_(0),IconsPath_({":/img/on2.jpg",":/img/pause2.jpg"}){
     ButtonPicture_.reserve(2);

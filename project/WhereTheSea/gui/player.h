@@ -19,7 +19,6 @@ class Player: public QMainWindow  {
     Q_OBJECT
 private:
     SettingsMenu * settingsMenu_;
-    //QMenu * helpMenu_;
 
     QAction * toSettings_;
     SettingsWindow * setWin_;
@@ -47,21 +46,21 @@ class SettingsWindow: public QDialog{
     Q_OBJECT
 private:
     QString imageDir_;
-    //QString logFile_;
     int logFile_; // 0 -unchecked ,2 -checked
     QString outputFile_;
     int minFile_;
     int scale_;
+    double identThreshold_;
+    bool useminFileParam_;
 
-
-    QLineEdit * imageDirLine_;
-    //QLineEdit * logFileLine_;
+    QLineEdit * imageDirLine_;    
     QCheckBox * logFileBox_;
     QLineEdit * outputFileLine_;
     QSpinBox * minFileBox_;
     QPushButton * but1;
     QPushButton * but2;
     QSpinBox * scaleBox_;
+    QDoubleSpinBox * identThresholdBox_;
 
     QSettings * storedSet_;
     friend class ::Player;
@@ -70,7 +69,7 @@ public:
 
     void checkInput();
 signals:
-    void sendSettingsToProcessor(QString imDir, int logFile, QString outputFile, int minFile,int scale);
+    void sendSettingsToProcessor(QString imDir, int logFile, QString outputFile, int minFile,int scale,double identThreshold);
 public slots:
     void openSettingsWindow(); // open settings window on pressing the button in menus
 
@@ -80,17 +79,26 @@ public slots:
     void applySetings();
     void cancelSettings();
 
-     void changeState(int); // desable while "paused"
+     void changeState(int);
 };
 
 class StatBar: public QLabel{
     Q_OBJECT
 private:
+    int state_;
     const QVector<QString> stateArr_;
+    int filesInQueue_;
+    QString strFilesCounts(int count){
+        QString commas;
+        commas.fill(' ',30-2*QString::number(count).size());
+        return QString(commas + "Files in queue: " + QString::number(count));
+    }
+
 public:
     StatBar(QWidget * parent = nullptr);
 public slots:
     void changeState(int);
+    void changeCounter(int);
 };
 
 class PausePlayButton: public QPushButton{

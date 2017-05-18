@@ -8,6 +8,7 @@ DataProcessor::DataProcessor(const QSettings & settings, QObject * parent):QObje
     outputFileStr_=settings.value("/Settings/OutputFile","").toString();
     imageDir_.setCurrent(imageDirStr_);
     minFile_=settings.value("/Settings/MinFile",15).toInt();
+    identThreshold_=settings.value("/Settings/IdentThreshold",0.05).toDouble();
 
     logFileBox_=settings.value("/Settings/LogFile",0).toInt();
     if(logFileBox_==2){
@@ -15,7 +16,7 @@ DataProcessor::DataProcessor(const QSettings & settings, QObject * parent):QObje
         logFile_=fopen(logFileStr_.toStdString().c_str(),"w");
         RadarProccessor_.setLogFile(logFile_);
      }
-    writeToLogBegin(logFile_, logFileStr_,localTime_,imageDirStr_,outputFileStr_,minFile_,scale_);
+    writeToLogBegin(logFile_, logFileStr_,localTime_,imageDirStr_,outputFileStr_,minFile_,scale_,identThreshold_);
 
     dirModel_=new QFileSystemModel;
     dirModel_->setRootPath(imageDirStr_);
@@ -26,6 +27,7 @@ DataProcessor::DataProcessor(const QSettings & settings, QObject * parent):QObje
     RadarProccessor_.setOutputFile(outputFileStr_.toStdString());
     RadarProccessor_.setFreq(minFile_);
     RadarProccessor_.setScale(scale_);
+    RadarProccessor_.setIdentThreshold(identThreshold_);
 
     state_=0;
 }
@@ -36,14 +38,15 @@ DataProcessor::~DataProcessor(){
     }
 }
 
-void DataProcessor::writeToLogBegin(FILE * logFile, QString logFileStr, QDateTime localTime, QString imageDirStr, QString outputFileStr, int minFile, int scale){
+void DataProcessor::writeToLogBegin(FILE * logFile, QString logFileStr, QDateTime localTime, QString imageDirStr, QString outputFileStr, int minFile, int scale , double identThreshold){
     if(logFile!=NULL){
         fprintf(logFile,"Log file <%s> creation: %s\n"
                     "Directory with images: %s\n"
                     "Output file with objects' motion data: %s\n"
                     "Minimal amount of files to perform: %i\n"
-                    "Scale factor: %i\n\n",
-logFileStr.toStdString().c_str(),localTime.toString("yyyy-MM-dd hh:mm:ss").toStdString().c_str(), imageDirStr.toStdString().c_str(), outputFileStr.toStdString().c_str(), minFile,scale);
+                    "Scale factor: %i\n"
+                    "Identification threshold : %f\n\n",
+logFileStr.toStdString().c_str(),localTime.toString("yyyy-MM-dd hh:mm:ss").toStdString().c_str(), imageDirStr.toStdString().c_str(), outputFileStr.toStdString().c_str(), minFile,scale,identThreshold);
     }
 }
 
@@ -71,13 +74,14 @@ void DataProcessor::changeButtonApply(int state){
     if(state_==0 || state_==1){
         if(state_==0){
             if(state_prev==1 || state_prev==2){
-                perform(state_);
+                perform();
                 //can be less then fequency images in queue
-                imagePathesQueue_.clear(); //clear after stopping and performing residual images
+                imagePathesQueue_.clear(); //clear after stopping and performing residual images                
             }
         disconnect(dirModel_,SIGNAL(rowsInserted(QModelIndex,int,int)),this,SLOT(readImagesAndRun(QModelIndex,int,int)));
         }
         this->blockSignals(false);
+        emit changeCounterView(imagePathesQueue_.size());
         emit changeStateView(state_);
     }
     else{
@@ -87,11 +91,11 @@ void DataProcessor::changeButtonApply(int state){
         if(state_prev==0){
             readAllImagesOnce();
         }
-        perform(state_);
+        perform();
     }
 }
 
-void DataProcessor::changedParametersApply(QString imDir,int logFileBox, QString outFile, int freq, int scale) {
+void DataProcessor::changedParametersApply(QString imDir,int logFileBox, QString outFile, int freq, int scale,double identThreshold) {
     if(imageDirStr_!=imDir){
         imageDirStr_=imDir;
         imageDir_.setCurrent(imageDirStr_);
@@ -116,7 +120,7 @@ void DataProcessor::changedParametersApply(QString imDir,int logFileBox, QString
             logFileStr_=QCoreApplication::applicationDirPath()+"/WhereTheSea_"+ localTime_.toString("yyyyMMdd_hhmmss")+ ".log";
             logFile_=fopen(logFileStr_.toStdString().c_str(),"w");
             RadarProccessor_.setLogFile(logFile_);
-            writeToLogBegin(logFile_, logFileStr_,localTime_,imageDirStr_,outputFileStr_,minFile_,scale_);
+            writeToLogBegin(logFile_, logFileStr_,localTime_,imageDirStr_,outputFileStr_,minFile_,scale_,identThreshold_);
         }
         else{
              if(logFile_!=NULL){
@@ -144,6 +148,15 @@ void DataProcessor::changedParametersApply(QString imDir,int logFileBox, QString
              fprintf(logFile_,"New scale : %i\n",scale_);
         }
     }
+
+    if (identThreshold_!=identThreshold){
+        identThreshold_=identThreshold;
+        RadarProccessor_.setIdentThreshold(identThreshold_);
+        if(logFile_!=NULL){
+             fprintf(logFile_,"New identification threshold: %f\n",identThreshold_);
+        }
+    }
+
 }
 
 void DataProcessor::readAllImagesOnce(){
@@ -158,20 +171,21 @@ void DataProcessor::readAllImagesOnce(){
             fprintf(logFile_,"   %s\n",FirstImages.at(i).toStdString().c_str());
         }
     }
+    emit changeCounterView(FirstImages.size());
 }
 
-void DataProcessor::perform(int state){
-    while(state!=1 && imagePathesQueue_.size()>=minFile_){
-        //MUFFLE
+void DataProcessor::perform(){
+    while(state_!=1 && imagePathesQueue_.size()>=minFile_){
         list<string> img_files_to_pass;
         for(int j=0;j<minFile_;++j){
             img_files_to_pass.push_back(imagePathesQueue_.first().toStdString());
             qDebug() << imagePathesQueue_.first();
             imagePathesQueue_.dequeue();
+            emit changeCounterView(imagePathesQueue_.size());
         }
-
         RadarProccessor_.run(img_files_to_pass);
-        QCoreApplication::processEvents(QEventLoop::AllEvents); //NOT TESTED
+
+        QCoreApplication::processEvents(QEventLoop::AllEvents);
     }
 }
 
@@ -184,9 +198,10 @@ void DataProcessor::readImagesAndRun(const QModelIndex& parent, int start, int e
         QModelIndex PathIndex=dirModel_->index(i,0,parent);
         QVariant PathName= PathIndex.data();
         imagePathesQueue_.enqueue(PathName.toString());
+        emit changeCounterView(imagePathesQueue_.size());
         if(logFile_!=NULL){
             fprintf(logFile_,"   %s\n",PathName.toString().toStdString().c_str());
         }
     }
-    perform(state_);
+    perform();
 }
