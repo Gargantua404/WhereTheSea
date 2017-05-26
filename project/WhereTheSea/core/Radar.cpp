@@ -15,6 +15,8 @@ bool Radar::iw(int x, int y)
 		return false;
 	if (y >= world.TellHeight())
 		return false;
+    if (!((world.GetPixel(x,y) == white) && (world.GetPixel(x,y) == black) && (world.GetPixel(x,y) == green)))
+        return false;
 	return true;
 }
 //Если рядом с чёрным или белым пикселем меньше двух таких же, перекрашиваем в противополодный цвет и вызываемся от соседей
@@ -23,29 +25,37 @@ void Radar::cleanPixel(int x, int y)
 	RGBApixel p = world.GetPixel(x, y);
 	if ((p == white) || (p == black))
 	{
-		int same = 0;
+        blackAndWhitePixels++;
+        int same = 0, all;
 		for (int h = 0; h < 4; h++)
 			if (iw(x + dx[h], y + dy[h]))
+            {
+                all++;
 				if (world.GetPixel(x + dx[h], y + dy[h]) == p)
 					same++;
-		if (same < 2)
+            }
+        if ((same < 2) && (all > 1))
 		{
+            clearedPixels++;
 			if (p == white)
 				world.SetPixel(x, y, black);
 			if (p == black)
 				world.SetPixel(x, y, white);
-			for (int h = 0; h < 4; h++)
+            for (int h = 0; h < 4; h++)
 				if (iw(x + dx[h], y + dy[h]))
-					cleanPixel(x + dx[h], y + dy[h]);
+                    cleanPixel(x + dx[h], y + dy[h]);
 		}
 	}
 }
 //Вызываем cleanPixel от всех пикселей изображения, таким образом очищаем изображение от шума
-void Radar::clean()
+double Radar::clean()
 {
+    blackAndWhitePixels = 0;
+    clearedPixels = 0;
 	for (int x = 0; x < world.TellWidth(); x++)
 		for (int y = 0; y < world.TellHeight(); y++)
 			cleanPixel(x, y);
+    return (double)clearedPixels / blackAndWhitePixels;
 }
 //Заливка, подсчитывающая, сколько пикселей залили, а также сумму иксов и игреков этих пикселей
 vector<double> Radar::fillingPixel(RGBApixel from, RGBApixel to, int x, int y)
@@ -82,6 +92,8 @@ void Radar::findObjects()
 			if (p == white)
 			{
 				vector<double> odata = fillingPixel(white, green, x, y);
+                if (noize < 0.15) minMonitoredSize = (int)(noize * 100);
+                else minMonitoredSize = (int)(noize * 100 * (noize * 10 - 0.5));
 				if (odata[0] >= minMonitoredSize)
 				{
 					os.push_back(odata[0]);
@@ -92,7 +104,7 @@ void Radar::findObjects()
 					fillingPixel(green, black, x, y);
 			}
 		}
-	ovx = *(new vector<double>(ox.size(), 0));
+    ovx = *(new vector<double>(ox.size(), 0));
 	ovy = *(new vector<double>(ox.size(), 0));
 }
 //Метрика непохожести объектов, можно и другую написать
@@ -102,21 +114,22 @@ double Radar::delta(double x1, double y1, double s1, double x2, double y2, doubl
 	double ds = s1 / s2;
 	if (ds < 1)
 		ds = 1 / ds;
-	return 20 * d / (s1 + s2) + ds;
+    return 20 * d / (s1 + s2) + ds;
 }
 //Принимаем изображение, ищем объекты, определяем похожие на объекты со старого изображения, определяем их скорости по изменению положения
 BMP Radar::nextStep(BMP image, bool createRedArrows)
 {
 	vector<double> oldOx = ox, oldOy = oy, oldOs = os; //Запоминаем объекты с предыдущего изображения
 	world = *(new BMP(image));
-	clean();
+    noize = clean();
 	findObjects();
+    ot = *(new vector<bool>(ox.size(), false)); //Изначально скорости объектов неизвестны
 	if (firstImage) //Если изображение первое, то мы пока не можем определить скорости объектов
 	{
 		firstImage = false;
 		return world;
 	}
-	vector<int> costsI, costsJ; //Веткоры для выяснения, какой индекс был изначально у строки/столбца матрицы costs
+    vector<int> costsI, costsJ; //Векторы для выяснения, какой индекс был изначально у строки/столбца матрицы costs
 	vector<vector<double>> costs = *(new vector<vector<double>>(oldOx.size(), *(new vector<double>))); //Матрица непохожести объектов
 	BMP imageOut = world;
 	for (int i = 0; i < oldOx.size(); i++)
@@ -146,6 +159,7 @@ BMP Radar::nextStep(BMP image, bool createRedArrows)
 			double x = ox[no], y = oy[no];
 			ovx[no] = ox[no] - oldOx[oo]; //Запоминаем скорость объекта
 			ovy[no] = oy[no] - oldOy[oo];
+            ot[no] = true; //И запоминаем, что мы её знаем
 			if (createRedArrows) //Если нужны красные линии скорости (они нужны только для дебага, поэтому не нормируются по времени)
 			{
 				double tx = x + (x - oldOx[oo]) * 2, ty = y + (y - oldOy[oo]) * 2;
@@ -168,10 +182,9 @@ BMP Radar::nextStep(BMP image, bool createRedArrows)
 	}
 	return imageOut;
 }
-int Radar::timeInterval()
+double Radar::timeInterval()
 {
-	int res = ss - oss;
-	res += 60 * (mm - omm);
+    double res = 60 * (mm - omm) + ss - oss + (double)(cc - occ) / 100;
 	if (ohh != hh) res += 3600;
 	return res;
 }
@@ -179,16 +192,22 @@ int Radar::timeInterval()
 void Radar::writeOutput()
 {
 	outputFile = fopen(outputFileName.c_str(), "a");
-	fprintf(outputFile, "%04d-%02d-%02d-%02d-%02d-%02d\n", YYYY, MM, DD, hh, mm, ss);
+    fprintf(outputFile, "%04d-%02d-%02d-%02d-%02d-%02d-%02d\n", YYYY, MM, DD, hh, mm, ss, cc);
+    fprintf(outputFile, "noize = %f\n", noize);
 	for (int i = 0; i < ox.size(); i++)
 	{
 		double xd = (ox[i] - ((double)world.TellWidth() / 2)); //Пересчитываем в полярные координаты
 		double yd = (oy[i] - ((double)world.TellHeight() / 2));
-		double objectDistance = sqrt(xd * xd + yd * yd) / scale;
+        double objectDistance = sqrt(xd * xd + yd * yd) * scale;
 		double objectAzimuth = atan2(xd, -yd);
 		double speedDistance = sqrt(ovx[i] * ovx[i] + ovy[i] * ovy[i]) / scale * timeInterval(); //И учитываем разницу во времени между изображениями
 		double speedAzimuth = atan2(ovx[i], -ovy[i]);
-		fprintf(outputFile, "%f %f %f %f %f\n", os[i], objectDistance, objectAzimuth, speedDistance, speedAzimuth);
+        double objectRealSize = os[i] * scale * scale;
+        fprintf(outputFile, "%f %f %f ", objectRealSize, objectDistance, objectAzimuth);
+        if (ot[i])
+            fprintf(outputFile, "%f %f\n", speedDistance, speedAzimuth);
+        else
+            fprintf(outputFile, "Speed unknown\n");
 	}
 	fclose(outputFile);
 	outputFile = NULL;
@@ -196,7 +215,7 @@ void Radar::writeOutput()
 
 //Тут заканчиваются private методы и начинаются public
 
-//Конструктор. Scale - количество пикселей в километре
+//Конструктор. Scale - количество метров в пкселе
 Radar::Radar(double newScale)
 {
 	scale = newScale;
@@ -289,8 +308,9 @@ int Radar::run(const list<string> inputFileNames, bool createOutputImage, const 
 		ohh = hh;
 		omm = mm;
 		oss = ss;
+        occ = cc;
 	}
-	sscanf(inputImageFileName.substr(found+1).c_str(), "%d-%d-%d-%d-%d-%d", &YYYY, &MM, &DD, &hh, &mm, &ss);
+    sscanf(inputImageFileName.substr(found+1).c_str(), "%d-%d-%d-%d-%d-%d-%d", &YYYY, &MM, &DD, &hh, &mm, &ss, &cc);
 	BMP inputImage;
 	inputImage.ReadFromFile(inputImageFileName.c_str());
 	if (createOutputImage) //Если нужно выходное изображение, создаём его, иначе просто обрабатываем данные
