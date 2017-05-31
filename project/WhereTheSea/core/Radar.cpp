@@ -15,7 +15,7 @@ bool Radar::iw(int x, int y)
 		return false;
 	if (y >= world.TellHeight())
 		return false;
-    if (!((world.GetPixel(x,y) == white) && (world.GetPixel(x,y) == black) && (world.GetPixel(x,y) == green)))
+    if (!((world.GetPixel(x,y) == white) || (world.GetPixel(x,y) == black) || (world.GetPixel(x,y) == green)))
         return false;
 	return true;
 }
@@ -26,7 +26,7 @@ void Radar::cleanPixel(int x, int y)
 	if ((p == white) || (p == black))
 	{
         blackAndWhitePixels++;
-        int same = 0, all;
+        int same = 0, all = 0;
 		for (int h = 0; h < 4; h++)
 			if (iw(x + dx[h], y + dy[h]))
             {
