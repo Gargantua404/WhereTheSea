@@ -4,7 +4,11 @@
 #include <cstdlib>
 #include <time.h>
 
+#include <../libGeographic/include/GeographicLib/LocalCartesian.hpp>
+using namespace GeographicLib;
+
 using namespace std;
+
 bool operator == (const RGBApixel a, const RGBApixel b);
 class Radar
 {
@@ -25,6 +29,12 @@ private:
 	string logFileName, outputFileName;
 	FILE *logFile, *outputFile;
 	int dx[4] = { 0, 1, 0, -1 }, dy[4] = { 1, 0, -1, 0 };
+
+    double lat0 ,olat0; //latitude in degrees [-90,90] of the center of the image
+    double lon0, olon0; //longitude in degrees [0,180] of the center of the image
+    LocalCartesian LocGeoc; // class for geographic to cartesian coordinates convertation
+    //initialized by (lat=0,lon=0,h=0)
+
 	bool iw(int x, int y);
 	void cleanPixel(int x, int y);
     double clean();
@@ -47,4 +57,6 @@ public:
 	int run(const list<string> inputFileNames, bool createOutputImage, const string outputImageFileName);
 	int run(const list<string> inputFileNames);
 	BMP getImage();
+
+
 };

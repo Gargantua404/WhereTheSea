@@ -196,18 +196,31 @@ void Radar::writeOutput()
     fprintf(outputFile, "noize = %f\n", noize);
 	for (int i = 0; i < ox.size(); i++)
 	{
-		double xd = (ox[i] - ((double)world.TellWidth() / 2)); //Пересчитываем в полярные координаты
+        /*double xd = (ox[i] - ((double)world.TellWidth() / 2)); //Пересчитываем в полярные координаты
 		double yd = (oy[i] - ((double)world.TellHeight() / 2));
         double objectDistance = sqrt(xd * xd + yd * yd) * scale;
-		double objectAzimuth = atan2(xd, -yd);
-		double speedDistance = sqrt(ovx[i] * ovx[i] + ovy[i] * ovy[i]) / scale * timeInterval(); //И учитываем разницу во времени между изображениями
-		double speedAzimuth = atan2(ovx[i], -ovy[i]);
+        double objectAzimuth = atan2(xd, -yd);*/
+
+        double lat=0,lon=0, h=0;
+        LocGeoc.Reverse(ox[i]*scale,oy[i]*scale,0.0,lat,lon,h); //get geographic from cartesian coordinates of the objects
+
+        /*double speedDistance = sqrt(ovx[i] * ovx[i] + ovy[i] * ovy[i]) / scale * timeInterval(); //И учитываем разницу во времени между изображениями
+        double speedAzimuth = atan2(ovx[i], -ovy[i]);*/
+
         double objectRealSize = os[i] * scale * scale;
-        fprintf(outputFile, "%f %f %f ", objectRealSize, objectDistance, objectAzimuth);
-        if (ot[i])
-            fprintf(outputFile, "%f %f\n", speedDistance, speedAzimuth);
+
+        //fprintf(outputFile, "%f %f %f ", objectRealSize, objectDistance, objectAzimuth);
+        fprintf(outputFile, "%f %f %f ", objectRealSize, lat, lon);
+        if (ot[i]){
+            //fprintf(outputFile, "%f %f\n", speedDistance, speedAzimuth);
+            //taking into account  the bias of the beginning of coordinate system
+            double dOx=0,dOy=0,dOh=0;
+            LocGeoc.Forward(olat0,olon0,0.0,dOx,dOy,dOh);//dOh is unusedm thus h==oh
+            fprintf(outputFile, "%f %f\n", (ovx[i]-dOx)*scale/timeInterval(), (ovy[i]-dOy)*scale/timeInterval());
+        }
         else
-            fprintf(outputFile, "Speed unknown\n");
+            //fprintf(outputFile, "Speed unknown\n");
+            fprintf(outputFile, "UNKNOWN UNKNOWN \n");
 	}
 	fclose(outputFile);
 	outputFile = NULL;
@@ -216,7 +229,7 @@ void Radar::writeOutput()
 //Тут заканчиваются private методы и начинаются public
 
 //Конструктор. Scale - количество метров в пкселе
-Radar::Radar(double newScale)
+Radar::Radar(double newScale):lat0(0),olat0(0),lon0(0),olon0(0),LocGeoc(0,0)
 {
 	scale = newScale;
 	logFile = NULL;
@@ -298,8 +311,8 @@ int Radar::run(const list<string> inputFileNames, bool createOutputImage, const 
 	}
 	if (inputFileNames.size() != freq) //список должен быть нужной длины
 		return 1;
-	string inputImageFileName = inputFileNames.front();
-	size_t found = inputImageFileName.find_last_of("/\\"); //Выделяем время из названия файла
+
+    //save previous date
 	if (!firstImage)
 	{
 		oYYYY = YYYY;
@@ -309,8 +322,45 @@ int Radar::run(const list<string> inputFileNames, bool createOutputImage, const 
 		omm = mm;
 		oss = ss;
         occ = cc;
-	}
-    sscanf(inputImageFileName.substr(found+1).c_str(), "%d-%d-%d-%d-%d-%d-%d", &YYYY, &MM, &DD, &hh, &mm, &ss, &cc);
+        olat0=lat0;
+        olon0=lon0;
+    }
+    string inputImageFileName = inputFileNames.front();
+    /*size_t found = inputImageFileName.find_last_of("/\\"); //Выделяем время из названия файла
+    const char * lastPartFileName=inputImageFileName.substr(found+1).c_str() ;
+    sscanf(lastPartFileName, "%d-%d-%d-%d-%d-%d-%d", &YYYY, &MM, &DD, &hh, &mm, &ss, &cc);*/
+    //scanf(inputImageFileName.c_str(), "%d-%d-%d-%d-%d-%d-%d-%f-%f", &YYYY, &MM, &DD, &hh, &mm, &ss, &cc, &lat0, &lon0);
+    size_t np=0;
+    size_t nextPos=0;
+
+    YYYY=stoi(inputImageFileName,&np);
+    nextPos+=np+1;
+    MM=stoi(inputImageFileName.substr(nextPos),&np);
+    nextPos+=np+1;
+    DD=stoi(inputImageFileName.substr(nextPos),&np);
+    nextPos+=np+1;
+    hh=stoi(inputImageFileName.substr(nextPos),&np);
+    nextPos+=np+1;
+    mm=stoi(inputImageFileName.substr(nextPos),&np);
+    nextPos+=np+1;
+    ss=stoi(inputImageFileName.substr(nextPos),&np);
+    nextPos+=np+1;
+    cc=stoi(inputImageFileName.substr(nextPos),&np);
+    nextPos+=np+1;
+    lat0=stod(inputImageFileName.substr(nextPos),&np);
+    nextPos+=np+1;
+    lon0=stod(inputImageFileName.substr(nextPos));
+
+    //refresh center of cortesian coordinates
+    if(lat0<-90 || lat0>90 || lon0 <0 || lon0 >180 ){
+        if (logFile != NULL) {
+            fprintf(logFile, "Incorrect values of geographic coordinates in the name of the file: %s",inputImageFileName.c_str());
+        }
+         return -1;
+    }
+    else{
+        LocGeoc.Reset(lat0,lon0,0); // set the center of local cartesian coordinates
+    }
 	BMP inputImage;
 	inputImage.ReadFromFile(inputImageFileName.c_str());
 	if (createOutputImage) //Если нужно выходное изображение, создаём его, иначе просто обрабатываем данные

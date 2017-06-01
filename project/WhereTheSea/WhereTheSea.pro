@@ -3,10 +3,11 @@ CONFIG += ordered
 
 SUBDIRS += \
     libEasyBMP\
+    libGeographic\
     core\
-    gui \
+    gui
 
 
 gui.depends = core
-core.depends =libEasyBMP
-
+gui.depends = libGeographic
+gui.depends = libEasyBMP

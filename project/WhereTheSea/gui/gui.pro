@@ -5,27 +5,27 @@
 #-------------------------------------------------
 
 QT       += core gui
-
+TEMPLATE = app
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 TARGET = gui
-TEMPLATE = app
-Debug:LIBS += ../../Build/core/debug/libcore.a
-Debug:LIBS += ../../Build/libEasyBMP/debug/liblibEasyBMP.a
+Release: DESTDIR = $$PWD/Release
+Debug: DESTDIR = $$PWD/Debug
 
-Release:LIBS += ../../Build/core/release/libcore.a
-Release:LIBS += ../../Build/libEasyBMP/release/liblibEasyBMP.a
 
-# The following define makes your compiler emit warnings if you use
-# any feature of Qt which as been marked as deprecated (the exact warnings
-# depend on your compiler). Please consult the documentation of the
-# deprecated API in order to know how to port your code away from it.
+Debug:LIBS += $$PWD/../core/Debug/libcore.a
+Debug:LIBS += $$PWD/../libGeographic/Debug/liblibGeographic.a
+Debug:LIBS += $$PWD/../libEasyBMP/Debug/liblibEasyBMP.a
+
+Release:LIBS += $$PWD/../core/Release/libcore.a
+Release:LIBS += $$PWD/../libGeographic/Release/liblibGeographic.a
+Release:LIBS += $$PWD/../libEasyBMP/Release/liblibEasyBMP.a
+
+
+INCLUDEPATH = $$PWD/../libGeographic/include/
+
 DEFINES += QT_DEPRECATED_WARNINGS
 
-# You can also make your code fail to compile if you use deprecated APIs.
-# In order to do so, uncomment the following line.
-# You can also select to disable deprecated APIs only up to a certain version of Qt.
-#DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += main.cpp\
         dataprocessor.cpp \

@@ -226,7 +226,7 @@ SettingsWindow::SettingsWindow(QSettings * storedSet, QWidget * parent):storedSe
 
     QLabel * clabel4= new QLabel(tr("Identification threshold:"));
     identThresholdBox_ = new QDoubleSpinBox;
-    identThreshold_=storedSet_->value("/Settings/IdentThreshold",0.05).toDouble();
+    identThreshold_=storedSet_->value("/Settings/IdentThreshold",0.10).toDouble();
     identThresholdBox_->setValue(identThreshold_);
     identThresholdBox_->setFixedWidth(60);
     identThresholdBox_->setSingleStep(0.01);
