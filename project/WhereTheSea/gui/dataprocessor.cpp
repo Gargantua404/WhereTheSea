@@ -8,7 +8,7 @@ DataProcessor::DataProcessor(const QSettings & settings, QObject * parent):QObje
     outputFileStr_=settings.value("/Settings/OutputFile","").toString();
     imageDir_.setCurrent(imageDirStr_);
     minFile_=settings.value("/Settings/MinFile",15).toInt();
-    MOA_=settings.value("/Settings/MOA",1000).toDouble();
+    MOA_=settings.value("/Settings/MOA",1000.0).toDouble();
 
     logFileBox_=settings.value("/Settings/LogFile",0).toInt();
     if(logFileBox_==2){

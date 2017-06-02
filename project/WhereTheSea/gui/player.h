@@ -70,7 +70,7 @@ public:
 
     void checkInput();
 signals:
-    void sendSettingsToProcessor(QString imDir, int logFile, QString outputFile, int minFile,int scale,double identThreshold);
+    void sendSettingsToProcessor(QString imDir, int logFile, QString outputFile, int minFile, int scale, double moa);
 public slots:
     void openSettingsWindow(); // open settings window on pressing the button in menus
 

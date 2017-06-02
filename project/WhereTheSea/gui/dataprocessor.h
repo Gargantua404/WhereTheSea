@@ -31,7 +31,7 @@ private:
 
     QDateTime localTime_;
 
-    void writeToLogBegin(FILE *,QString logFileStr,QDateTime localTime,QString imageDirStr, QString outputFileStr, int minFile, int scale, double identThreshold);
+    void writeToLogBegin(FILE *,QString logFileStr,QDateTime localTime,QString imageDirStr, QString outputFileStr, int minFile, int scale, double moa);
 public:
     explicit DataProcessor(const QSettings &, QObject * parent=nullptr);
     ~DataProcessor();
