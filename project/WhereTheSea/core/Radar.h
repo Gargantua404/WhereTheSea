@@ -58,5 +58,7 @@ public:
 	int run(const list<string> inputFileNames);
 	BMP getImage();
 
+    int degree2Full(double degIn, char type, int &degOut, int &minOut, double &secOut);
+    int full2Degree(int degIn, int minIn, double secIn, char type, double &degOut);
 
 };

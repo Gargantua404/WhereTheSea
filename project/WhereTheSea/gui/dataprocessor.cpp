@@ -179,7 +179,7 @@ void DataProcessor::perform(){
         list<string> img_files_to_pass;
         for(int j=0;j<minFile_;++j){
             img_files_to_pass.push_back(imagePathesQueue_.first().toStdString());
-            qDebug() << imagePathesQueue_.first();
+            //qDebug() << imagePathesQueue_.first();
             imagePathesQueue_.dequeue();
             emit changeCounterView(imagePathesQueue_.size());
         }

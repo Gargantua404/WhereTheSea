@@ -210,17 +210,21 @@ void Radar::writeOutput()
         double objectRealSize = os[i] * scale * scale;
 
         //fprintf(outputFile, "%f %f %f ", objectRealSize, objectDistance, objectAzimuth);
-        fprintf(outputFile, "%f %f %f ", objectRealSize, lat, lon);
+        int degLat=0, degLon=0, minLat=0, minLon=0;
+        double secLat=0.0, secLon=0.0;
+        degree2Full(lat,'a',degLat,minLat,secLat);
+        degree2Full(lon,'o',degLon,minLon,secLon);
+        fprintf(outputFile, "%15f %+2d %2d %15f %2d %2d %15f", objectRealSize, degLat, minLat, secLat, degLon, minLon, secLon);
         if (ot[i]){
             //fprintf(outputFile, "%f %f\n", speedDistance, speedAzimuth);
             //taking into account  the bias of the beginning of coordinate system
             double dOx=0,dOy=0,dOh=0;
-            LocGeoc.Forward(olat0,olon0,0.0,dOx,dOy,dOh);//dOh is unusedm thus h==oh
-            fprintf(outputFile, "%f %f\n", (ovx[i]-dOx)*scale/timeInterval(), (ovy[i]-dOy)*scale/timeInterval());
+            LocGeoc.Forward(olat0,olon0,0.0,dOx,dOy,dOh);// get cartesian from geographic coordinates
+            fprintf(outputFile, "%+15f %+15f\n", (ovx[i]-dOx)*scale/timeInterval(), (ovy[i]-dOy)*scale/timeInterval());
         }
         else
             //fprintf(outputFile, "Speed unknown\n");
-            fprintf(outputFile, "UNKNOWN UNKNOWN \n");
+            fprintf(outputFile, "    UNKNOWN          UNKNOWN    \n");
 	}
 	fclose(outputFile);
 	outputFile = NULL;
@@ -332,35 +336,82 @@ int Radar::run(const list<string> inputFileNames, bool createOutputImage, const 
     //scanf(inputImageFileName.c_str(), "%d-%d-%d-%d-%d-%d-%d-%f-%f", &YYYY, &MM, &DD, &hh, &mm, &ss, &cc, &lat0, &lon0);
     size_t np=0;
     size_t nextPos=0;
-
-    YYYY=stoi(inputImageFileName,&np);
-    nextPos+=np+1;
-    MM=stoi(inputImageFileName.substr(nextPos),&np);
-    nextPos+=np+1;
-    DD=stoi(inputImageFileName.substr(nextPos),&np);
-    nextPos+=np+1;
-    hh=stoi(inputImageFileName.substr(nextPos),&np);
-    nextPos+=np+1;
-    mm=stoi(inputImageFileName.substr(nextPos),&np);
-    nextPos+=np+1;
-    ss=stoi(inputImageFileName.substr(nextPos),&np);
-    nextPos+=np+1;
-    cc=stoi(inputImageFileName.substr(nextPos),&np);
-    nextPos+=np+1;
-    lat0=stod(inputImageFileName.substr(nextPos),&np);
-    nextPos+=np+1;
-    lon0=stod(inputImageFileName.substr(nextPos));
-
-    //refresh center of cortesian coordinates
-    if(lat0<-90 || lat0>90 || lon0 <0 || lon0 >180 ){
-        if (logFile != NULL) {
-            fprintf(logFile, "Incorrect values of geographic coordinates in the name of the file: %s",inputImageFileName.c_str());
+    //bool isDigit=true;
+    string tempSubstr;
+    tempSubstr=inputImageFileName.substr(0,4);
+    if(tempSubstr.find_first_not_of( "0123456789" ) == string::npos){
+        YYYY=stoi(tempSubstr);
+        tempSubstr=inputImageFileName.substr(5,2);
+        if(tempSubstr.find_first_not_of( "0123456789" ) == string::npos){
+            MM=stoi(tempSubstr);
+            tempSubstr=inputImageFileName.substr(8,2);
+            if(tempSubstr.find_first_not_of( "0123456789" ) == string::npos){
+                DD=stoi(tempSubstr);
+                tempSubstr=inputImageFileName.substr(11,2);
+                if(tempSubstr.find_first_not_of( "0123456789" ) == string::npos){
+                    hh=stoi(tempSubstr);
+                    tempSubstr=inputImageFileName.substr(14,2);
+                    if(tempSubstr.find_first_not_of( "0123456789" ) == string::npos){
+                        mm=stoi(tempSubstr);
+                        tempSubstr=inputImageFileName.substr(17,2);
+                        if(tempSubstr.find_first_not_of( "0123456789" ) == string::npos){
+                            ss=stoi(tempSubstr);
+                            tempSubstr=inputImageFileName.substr(20,inputImageFileName.find_first_of("_")-20);
+                            if(tempSubstr.find_first_not_of( "0123456789" ) == string::npos){
+                                cc=stoi(tempSubstr,&np);
+if(MM<1 || MM >12 || DD<1 || DD >31 || hh <0 || hh>=24 || mm <0 || mm>=60 || ss<0 || ss>=60 || cc<0){
+    if (logFile != NULL) {
+        fprintf(logFile, "Incorrect date format in the name of the file: %s",inputImageFileName.c_str());
+    }
+    return -1;
+}
+int degLat=0, minLat=0,degLon=0, minLon=0;
+double secLat=0.0, secLon=0.0;
+nextPos=np+21;
+tempSubstr=inputImageFileName.substr(nextPos,2); //degrees
+if(tempSubstr.find_first_not_of( "0123456789" ) == string::npos){
+    degLat=stoi(tempSubstr);
+    tempSubstr=inputImageFileName.substr(nextPos+3,2);
+    if(tempSubstr.find_first_not_of( "0123456789" ) == string::npos){
+        minLat=stoi(tempSubstr);
+        int inderSym2=(inputImageFileName.substr(nextPos+6)).find_first_of("_");
+        tempSubstr=inputImageFileName.substr(nextPos+6,inderSym2);
+        if(tempSubstr.find_first_not_of( "0123456789." ) == string::npos){
+            secLat=stod(tempSubstr,&np);
+            nextPos+=np+7;
+            tempSubstr=inputImageFileName.substr(nextPos,2);
+            if(tempSubstr.find_first_not_of( "0123456789." ) == string::npos){
+                degLon=stoi(tempSubstr);
+                tempSubstr=inputImageFileName.substr(nextPos+3,2);
+                if(tempSubstr.find_first_not_of( "0123456789." ) == string::npos){
+                    minLon=stoi(tempSubstr);
+                    tempSubstr=inputImageFileName.substr(nextPos+6,inputImageFileName.substr(nextPos+6).size()-4);
+                    if(tempSubstr.find_first_not_of( "0123456789." ) == string::npos){
+                        secLon=stod(tempSubstr);
+                        if(full2Degree(degLat,minLat,secLat,'a',lat0) !=0 || full2Degree(degLon,minLon,secLon,'o',lon0) !=0){
+                            if (logFile != NULL) {
+                                fprintf(logFile, "Incorrect format of geographic coordinates in the name of the file: %s",inputImageFileName.c_str());
+                            }
+                             return -1;
+                        }
+                        else{
+                            //refresh center of cortesian coordinates
+                            LocGeoc.Reset(lat0,lon0,0); // set the center of local cartesian coordinates
+                        }
+                    }
+                }
+            }
         }
-         return -1;
     }
-    else{
-        LocGeoc.Reset(lat0,lon0,0); // set the center of local cartesian coordinates
+}
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
+
 	BMP inputImage;
 	inputImage.ReadFromFile(inputImageFileName.c_str());
 	if (createOutputImage) //≈сли нужно выходное изображение, создаЄм его, иначе просто обрабатываем данные
@@ -379,4 +430,29 @@ int Radar::run(const list<string> inputFileNames)
 BMP Radar::getImage()
 {
 	return world;
+}
+
+int Radar::degree2Full(double degIn, char type, int &degOut, int &minOut, double &secOut){
+    ///type: a - lattitude , o-longitude
+    if( (abs(degIn)>90 && type=='a') || ((degIn<0 || degIn>180) && type=='o')){
+        return -1;
+    }
+    else{
+        degOut=floor(degIn);
+        double temp = (degIn - degOut)*60;
+        minOut= floor(temp);
+        secOut= (temp-minOut)*60;
+        return 0;
+    }
+}
+
+int Radar::full2Degree(int degIn, int minIn, double secIn, char type, double &degOut){
+    ///type: a - langitude , o-longitude
+    if( (abs(degIn)>90 && type=='a') || ((degIn<0 || degIn>180) && type=='o') || abs(minIn)>=60 || floor(secIn)>=60){
+        return -1;
+    }
+    else{
+        degOut= degIn + (minIn/60) + (secIn/3600);
+        return 0;
+    }
 }
