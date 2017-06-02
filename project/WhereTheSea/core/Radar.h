@@ -31,7 +31,7 @@ private:
 	int dx[4] = { 0, 1, 0, -1 }, dy[4] = { 1, 0, -1, 0 };
 
     double lat0 ,olat0; //latitude in degrees [-90,90] of the center of the image
-    double lon0, olon0; //longitude in degrees [0,180] of the center of the image
+    double lon0, olon0; //longitude in degrees [-180,180] of the center of the image
     LocalCartesian LocGeoc; // class for geographic to cartesian coordinates convertation
     //initialized by (lat=0,lon=0,h=0)
 
@@ -58,7 +58,7 @@ public:
 	int run(const list<string> inputFileNames);
 	BMP getImage();
 
-    int degree2Full(double degIn, char type, int &degOut, int &minOut, double &secOut);
-    int full2Degree(int degIn, int minIn, double secIn, char type, double &degOut);
+    int degree2Full(double degIn, char type, char &signOut, int &degOut, int &minOut, double &secOut);
+    int full2Degree(char signIn,int degIn, int minIn, double secIn, char type, double &degOut);
 
 };
