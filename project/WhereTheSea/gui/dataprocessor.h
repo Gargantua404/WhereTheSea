@@ -22,7 +22,7 @@ private:
     int logFileBox_;
     int minFile_; //minimal number of files to process
     int scale_;
-    double identThreshold_;
+    double MOA_;
 
     QQueue<QString> imagePathesQueue_;
     QFileSystemModel * dirModel_;

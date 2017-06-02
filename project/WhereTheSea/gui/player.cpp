@@ -204,10 +204,10 @@ SettingsWindow::SettingsWindow(QSettings * storedSet, QWidget * parent):storedSe
 
     QLabel * clabel3= new QLabel(tr("Scale:"));
     scaleBox_ = new QSpinBox;
-    scale_=storedSet_->value("/Settings/Scale",100).toInt();
+    scale_=storedSet_->value("/Settings/Scale",5).toInt();
     scaleBox_->setValue(scale_);
     scaleBox_->setFixedWidth(60);
-    scaleBox_->setRange(1,10000);
+    scaleBox_->setRange(1,100);
 
     if(useminFileParam_){
       scaleLayout->addSpacing(164);
@@ -219,18 +219,18 @@ SettingsWindow::SettingsWindow(QSettings * storedSet, QWidget * parent):storedSe
     scaleLayout->addWidget(scaleBox_);
     scaleLayout->addStretch(1);
 
-    //Identification threshold parameter
-    QBoxLayout * identThresholdLayout= new QBoxLayout (QBoxLayout::LeftToRight);
+    //Minimal Object Area parameter
+    QBoxLayout * MOALayout= new QBoxLayout (QBoxLayout::LeftToRight);
     scaleLayout ->setMargin(marginvertical);
     scaleLayout ->setSpacing(spacinghorizontal);
 
-    QLabel * clabel4= new QLabel(tr("Identification threshold:"));
-    identThresholdBox_ = new QDoubleSpinBox;
-    identThreshold_=storedSet_->value("/Settings/IdentThreshold",0.10).toDouble();
-    identThresholdBox_->setValue(identThreshold_);
-    identThresholdBox_->setFixedWidth(60);
-    identThresholdBox_->setSingleStep(0.01);
-    identThresholdBox_->setRange(0,1);
+    QLabel * clabel4= new QLabel(tr("Minimal object area :"));
+    MOABox_ = new QDoubleSpinBox;
+    MOA_=storedSet_->value("/Settings/MOA",1000.0).toDouble();
+    MOABox_->setValue(MOA_);
+    MOABox_->setFixedWidth(80);
+    MOABox_->setSingleStep(1);
+    MOABox_->setRange(100.0,100000.0);
 
     if(useminFileParam_){
       scaleLayout->addSpacing(164);
@@ -239,7 +239,7 @@ SettingsWindow::SettingsWindow(QSettings * storedSet, QWidget * parent):storedSe
        scaleLayout->addSpacing(30);
     }
     scaleLayout->addWidget(clabel4);
-    scaleLayout->addWidget(identThresholdBox_);
+    scaleLayout->addWidget(MOABox_);
     scaleLayout->addStretch(1);
 
 
@@ -249,7 +249,7 @@ SettingsWindow::SettingsWindow(QSettings * storedSet, QWidget * parent):storedSe
         commonLayout->addLayout(minFileLayout);
     }
     commonLayout->addLayout(scaleLayout);
-    commonLayout->addLayout(identThresholdLayout);
+    commonLayout->addLayout(MOALayout);
 
     gCommon->setLayout(commonLayout);
 
@@ -276,7 +276,7 @@ SettingsWindow::SettingsWindow(QSettings * storedSet, QWidget * parent):storedSe
     connect(bcancel, SIGNAL(clicked(bool)),this,SLOT(cancelSettings()));
 
     //send initial parameters value to processor
-    emit sendSettingsToProcessor(imageDir_,logFile_,outputFile_,minFile_,scale_,identThreshold_);
+    emit sendSettingsToProcessor(imageDir_,logFile_,outputFile_,minFile_,scale_,MOA_);
 }
 
 void SettingsWindow::openSettingsWindow(){
@@ -326,11 +326,11 @@ void SettingsWindow::applySetings(){
     scale_=scaleBox_->value();
     storedSet_->setValue("Settings/Scale",scale_);
 
-    identThreshold_=identThresholdBox_->value();
-    storedSet_->setValue("Settings/IdentThreshold",identThreshold_);
+    MOA_=MOABox_->value();
+    storedSet_->setValue("Settings/MOA",MOA_);
 
     if(allisok){
-        emit sendSettingsToProcessor(imageDir_,logFile_,outputFile_,minFile_,scale_,identThreshold_);
+        emit sendSettingsToProcessor(imageDir_,logFile_,outputFile_,minFile_,scale_,MOA_);
         this->hide();
     }
 }

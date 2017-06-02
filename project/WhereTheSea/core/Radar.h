@@ -53,7 +53,7 @@ public:
 	void setLogFile(const string newLogFileName);
     void setLogFile(FILE * newLogFile);
     void setScale(int newScale);
-    void setIdentThreshold(double newThreshold);
+    void setMOA(double newMOA);
 	int run(const list<string> inputFileNames, bool createOutputImage, const string outputImageFileName);
 	int run(const list<string> inputFileNames);
 	BMP getImage();

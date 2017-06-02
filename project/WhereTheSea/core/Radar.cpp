@@ -92,8 +92,8 @@ void Radar::findObjects()
 			if (p == white)
 			{
 				vector<double> odata = fillingPixel(white, green, x, y);
-                if (noize < 0.15) minMonitoredSize = (int)(noize * 100);
-                else minMonitoredSize = (int)(noize * 100 * (noize * 10 - 0.5));
+                /*if (noize < 0.15) minMonitoredSize = (int)(noize * 100);
+                else minMonitoredSize = (int)(noize * 100 * (noize * 10 - 0.5));*/
 				if (odata[0] >= minMonitoredSize)
 				{
 					os.push_back(odata[0]);
@@ -258,8 +258,8 @@ void Radar::setScale(int newScale)
     scale=newScale;
 }
 
-void Radar::setIdentThreshold(double newThreshold){
-    //MUFFLE
+void Radar::setMOA(double newMOA){
+    minMonitoredSize = (int)ceil(newMOA / (scale * scale));
 }
 
 //Забываем объекты с прошлых изображений

@@ -1,14 +1,14 @@
 #include "dataprocessor.h"
 
 DataProcessor::DataProcessor(const QSettings & settings, QObject * parent):QObject(parent),logFile_(NULL),
-    scale_(settings.value("/Settings/Scale","").toInt()),
+    scale_(settings.value("/Settings/Scale",5).toInt()),
     RadarProccessor_(scale_), localTime_(QDateTime::currentDateTime()){
 
     imageDirStr_= settings.value("/Settings/ImageDir","").toString();
     outputFileStr_=settings.value("/Settings/OutputFile","").toString();
     imageDir_.setCurrent(imageDirStr_);
     minFile_=settings.value("/Settings/MinFile",15).toInt();
-    identThreshold_=settings.value("/Settings/IdentThreshold",0.05).toDouble();
+    MOA_=settings.value("/Settings/MOA",1000).toDouble();
 
     logFileBox_=settings.value("/Settings/LogFile",0).toInt();
     if(logFileBox_==2){
@@ -16,7 +16,7 @@ DataProcessor::DataProcessor(const QSettings & settings, QObject * parent):QObje
         logFile_=fopen(logFileStr_.toStdString().c_str(),"w");
         RadarProccessor_.setLogFile(logFile_);
      }
-    writeToLogBegin(logFile_, logFileStr_,localTime_,imageDirStr_,outputFileStr_,minFile_,scale_,identThreshold_);
+    writeToLogBegin(logFile_, logFileStr_,localTime_,imageDirStr_,outputFileStr_,minFile_,scale_,MOA_);
 
     dirModel_=new QFileSystemModel;
     dirModel_->setRootPath(imageDirStr_);
@@ -27,7 +27,7 @@ DataProcessor::DataProcessor(const QSettings & settings, QObject * parent):QObje
     RadarProccessor_.setOutputFile(outputFileStr_.toStdString());
     RadarProccessor_.setFreq(minFile_);
     RadarProccessor_.setScale(scale_);
-    RadarProccessor_.setIdentThreshold(identThreshold_);
+    RadarProccessor_.setMOA(MOA_);
 
     state_=0;
 }
@@ -38,15 +38,15 @@ DataProcessor::~DataProcessor(){
     }
 }
 
-void DataProcessor::writeToLogBegin(FILE * logFile, QString logFileStr, QDateTime localTime, QString imageDirStr, QString outputFileStr, int minFile, int scale , double identThreshold){
+void DataProcessor::writeToLogBegin(FILE * logFile, QString logFileStr, QDateTime localTime, QString imageDirStr, QString outputFileStr, int minFile, int scale , double moa){
     if(logFile!=NULL){
         fprintf(logFile,"Log file <%s> creation: %s\n"
                     "Directory with images: %s\n"
                     "Output file with objects' motion data: %s\n"
                     "Minimal amount of files to perform: %i\n"
                     "Scale factor: %i\n"
-                    "Identification threshold : %f\n\n",
-logFileStr.toStdString().c_str(),localTime.toString("yyyy-MM-dd hh:mm:ss").toStdString().c_str(), imageDirStr.toStdString().c_str(), outputFileStr.toStdString().c_str(), minFile,scale,identThreshold);
+                    "Minimal object area: %lf\n\n",
+logFileStr.toStdString().c_str(),localTime.toString("yyyy-MM-dd hh:mm:ss").toStdString().c_str(), imageDirStr.toStdString().c_str(), outputFileStr.toStdString().c_str(), minFile,scale,moa);
     }
 }
 
@@ -95,7 +95,7 @@ void DataProcessor::changeButtonApply(int state){
     }
 }
 
-void DataProcessor::changedParametersApply(QString imDir,int logFileBox, QString outFile, int freq, int scale,double identThreshold) {
+void DataProcessor::changedParametersApply(QString imDir,int logFileBox, QString outFile, int freq, int scale,double MOA) {
     if(imageDirStr_!=imDir){
         imageDirStr_=imDir;
         imageDir_.setCurrent(imageDirStr_);
@@ -120,7 +120,7 @@ void DataProcessor::changedParametersApply(QString imDir,int logFileBox, QString
             logFileStr_=QCoreApplication::applicationDirPath()+"/WhereTheSea_"+ localTime_.toString("yyyyMMdd_hhmmss")+ ".log";
             logFile_=fopen(logFileStr_.toStdString().c_str(),"w");
             RadarProccessor_.setLogFile(logFile_);
-            writeToLogBegin(logFile_, logFileStr_,localTime_,imageDirStr_,outputFileStr_,minFile_,scale_,identThreshold_);
+            writeToLogBegin(logFile_, logFileStr_,localTime_,imageDirStr_,outputFileStr_,minFile_,scale_,MOA_);
         }
         else{
              if(logFile_!=NULL){
@@ -149,11 +149,11 @@ void DataProcessor::changedParametersApply(QString imDir,int logFileBox, QString
         }
     }
 
-    if (identThreshold_!=identThreshold){
-        identThreshold_=identThreshold;
-        RadarProccessor_.setIdentThreshold(identThreshold_);
+    if (MOA_!=MOA){
+        MOA_=MOA;
+        RadarProccessor_.setMOA(MOA_);
         if(logFile_!=NULL){
-             fprintf(logFile_,"New identification threshold: %f\n",identThreshold_);
+             fprintf(logFile_,"New minimal object are: %lf\n",MOA_);
         }
     }
 

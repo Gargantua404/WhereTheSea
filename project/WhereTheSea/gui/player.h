@@ -53,7 +53,7 @@ private:
     QString outputFile_;
     int minFile_;
     int scale_;
-    double identThreshold_;
+    double MOA_;
 
     QLineEdit * imageDirLine_;    
     QCheckBox * logFileBox_;
@@ -62,7 +62,7 @@ private:
     QPushButton * but1;
     QPushButton * but2;
     QSpinBox * scaleBox_;
-    QDoubleSpinBox * identThresholdBox_;
+    QDoubleSpinBox * MOABox_;
 
     friend class ::Player;
 public:
